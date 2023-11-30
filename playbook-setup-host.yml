@@ -1,0 +1,33 @@
+---
+
+- hosts: rhel-dev
+  gather_facts: false
+  vars:
+    # Required variables
+    - local_container_registry_auth_file: "{{ playbook_dir }}/secrets/container-authfile.json"
+
+    # Optional variables
+    - osbuild_workdir: "/tmp/osbuild-aap"
+    - aap_version: "2.4"
+    - rhel_version: "9"
+    - run_step_install_packages: true
+    - run_step_enable_rhsm_repos: true
+    - run_step_setup_osbuild: true
+
+
+  tasks:
+    - name: "[include task] ./tasks/install_dependencies.yml"
+      when: run_step_install_packages
+      include_tasks: ./tasks/install_dependencies.yml
+
+    # ----------
+
+    - name: "[include task] ./tasks/enable_rhsm_repos.yml"
+      when: run_step_enable_rhsm_repos
+      include_tasks: ./tasks/enable_rhsm_repos.yml
+
+    # ----------
+
+    - name: "[include task] ./tasks/setup_osbuild_and_repos.yml"
+      when: run_step_setup_osbuild
+      include_tasks: ./tasks/setup_osbuild_and_repos.yml
