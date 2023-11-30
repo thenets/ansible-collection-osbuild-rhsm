@@ -1,0 +1,75 @@
+# Install the dependencies to run osbuild-composer
+#
+# - podman:
+#     required if the build will consume container images
+# - qemu-kvm/libvirt:
+#     required to run the build in a virtual machine
+# - weldr-client/osbuild-composer/composer-cli:
+#     main osbuild packages
+#
+---
+
+- name: Install podman
+  ansible.builtin.dnf:
+    name:
+      - podman
+    state: present
+
+# Based on https://access.redhat.com/documentation/pt-br/red_hat_enterprise_linux/9/html/configuring_and_managing_virtualization/assembly_enabling-virtualization-in-rhel-9_configuring-and-managing-virtualization
+- name: Install virtualization packages
+  ansible.builtin.dnf:
+    name:
+      - qemu-kvm
+      - libvirt
+      - virt-install
+      - virt-viewer
+    state: present
+
+- name: Enable libvirt service
+  loop:
+    - virtqemud
+    - libvirtd
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+
+- name: Validate host virtualization capabilities
+  ansible.builtin.command:
+    cmd: "virt-host-validate"
+  register: result_virt_host_validate
+
+- name: "[debug] virt-host-validate"
+  ansible.builtin.debug:
+    msg: "{{ result_virt_host_validate.stdout_lines }}"
+
+- name: Install "composer-cli" package
+  ansible.builtin.dnf:
+    name:
+      - weldr-client
+      - osbuild-composer
+      - composer-cli
+    state: present
+
+- name: "Create /etc/osbuild-composer"
+  ansible.builtin.file:
+    path: /etc/osbuild-composer
+    state: directory
+    mode: '0755'
+
+- name: "Start osbuild-composer service"
+  ansible.builtin.service:
+    name: osbuild-composer.socket
+    state: started
+    enabled: true
+
+# HACK: wait for osbuild-composer to start
+- name: sleep 3
+  ansible.builtin.pause:
+    seconds: 3
+
+- name: "Check if composer-cli is working"
+  ansible.builtin.command:
+    cmd: "composer-cli status show"
+  register: result_composer_status
+  failed_when: result_composer_status.rc != 0
