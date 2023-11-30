@@ -1,0 +1,274 @@
+---
+
+- hosts: rhel-dev
+  gather_facts: false
+  vars:
+    # Required variables
+    - local_container_registry_auth_file: "{{ playbook_dir }}/secrets/container-authfile.json"
+    - local_public_key_file: "{{ playbook_dir }}/secrets/id_rsa.pub"
+
+    # Optional variables
+    - osbuild_workdir: "/tmp/osbuild-aap"
+    - aap_version: "2.4"
+    - rhel_version: "9"
+    - run_step_install_packages: false
+    - run_step_enable_rhsm_repos: false
+    - run_step_setup_osbuild: true
+
+  handlers:
+    - name: sleep 10
+      ansible.builtin.pause:
+        seconds: 10
+
+  tasks:
+    - name: "block: Install and enable composer-cli"
+      when: run_step_install_packages
+      block:
+        - name: Install podman
+          ansible.builtin.dnf:
+            name:
+              - podman
+            state: present
+
+        # Based on https://access.redhat.com/documentation/pt-br/red_hat_enterprise_linux/9/html/configuring_and_managing_virtualization/assembly_enabling-virtualization-in-rhel-9_configuring-and-managing-virtualization
+        - name: Install virtualization packages
+          ansible.builtin.dnf:
+            name:
+              - qemu-kvm
+              - libvirt
+              - virt-install
+              - virt-viewer
+            state: present
+
+        - name: Enable libvirt service
+          loop:
+            - virtqemud
+            - libvirtd
+          ansible.builtin.service:
+            name: "{{ item }}"
+            state: started
+            enabled: true
+
+        - name: Validate host virtualization capabilities
+          ansible.builtin.command:
+            cmd: "virt-host-validate"
+          register: result_virt_host_validate
+
+        - name: "[debug] virt-host-validate"
+          ansible.builtin.debug:
+            msg: "{{ result_virt_host_validate.stdout_lines }}"
+
+        - name: Install "composer-cli" package
+          ansible.builtin.dnf:
+            name:
+              - weldr-client
+              - osbuild-composer
+              - composer-cli
+            state: present
+
+        - name: "Create /etc/osbuild-composer"
+          ansible.builtin.file:
+            path: /etc/osbuild-composer
+            state: directory
+            mode: '0755'
+
+        - name: "Start osbuild-composer service"
+          ansible.builtin.service:
+            name: osbuild-composer.socket
+            state: started
+            enabled: true
+          notify: sleep 10
+
+        - name: "Check if composer-cli is working"
+          ansible.builtin.command:
+            cmd: "composer-cli status show"
+          register: result_composer_status
+          failed_when: result_composer_status.rc != 0
+
+    # ----------
+
+    - name: "block: Enable RHEL repos"
+      when: run_step_enable_rhsm_repos
+      block:
+        - name: Enable Ansible repository on the system
+          community.general.rhsm_repository:
+            name:
+              - "ansible-automation-platform-{{ aap_version }}-for-rhel-{{ rhel_version }}-x86_64-rpms"
+
+        # - name: Install AAP package
+        #   ansible.builtin.yum:
+        #     name:
+        #       - ansible-automation-platform-installer
+
+    # ----------
+
+    - name: "block: Setup osbuild"
+      when: run_step_setup_osbuild
+      block:
+        - name: "Retrieve the repo data"
+          ansible.builtin.script:
+            cmd: "{{ playbook_dir }}/files/retrieve_repo_data.py {{ aap_version }} {{ rhel_version }}"
+            executable: python3
+          register: result_repo_data
+
+        - name: "[debug] Repo data"
+          ansible.builtin.debug:
+            msg: "{{ (result_repo_data.stdout | from_json) }}"
+
+        - name: "Create osbuild source directory"
+          ansible.builtin.file:
+            path: "{{ osbuild_workdir }}"
+            state: directory
+            mode: '0755'
+
+        - name: "block: create config files"
+          vars:
+            repo_data: "{{ (result_repo_data.stdout | from_json).repo }}"
+          block:
+            - name: "Create osbuild source file"
+              ansible.builtin.copy:
+                content: |
+                  id = "aap-{{ aap_version }}-rhel-{{ rhel_version }}"
+                  name = "{{ repo_data.name }}"
+                  type = "yum-baseurl"
+                  url = "{{ repo_data.baseurl }}"
+                  check_gpg = true
+                  check_ssl = true
+                  rhsm = true
+
+                  {% set gpgkeys = ([''] + (repo_data.gpgkey | split('-----BEGIN'))[1:3]) | join(',-----BEGIN') | trim | split(',') %}
+                  gpgkeys=[
+                  {% for key in gpgkeys[1:2] %}
+                  '''{{ key }}'''
+                  {%- if not loop.last %},
+                  {% endif %}
+                  {% endfor %}
+                  ]
+                dest: "{{ osbuild_workdir }}/source.toml"
+                mode: '0644'
+
+            # TODO add source to osbuild-composer
+            #      create /etc/osbuild-composer/repositories/aap-2.4-rhel-9.repo
+            - name: Create directory /etc/osbuild-composer/repositories/
+              ansible.builtin.file:
+                path: /etc/osbuild-composer/repositories/
+                state: directory
+                mode: '0755'
+                recurse: true
+
+            - name: "Define official repository overrides"
+              ansible.builtin.copy:
+                content: |
+                  {% set gpgkeys = ([''] + (repo_data.gpgkey | split('-----BEGIN'))[1:3]) | join(',-----BEGIN') | trim | split(',') %}
+                  {
+                    "x86_64": [
+                        {
+                            "name": "aap-{{ aap_version }}-rhel-{{ rhel_version }}",
+                            "metalink": "{{ repo_data.baseurl }}",
+                            "gpgkey": {{ gpgkeys[1] | to_json }},
+                            "check_gpg": true
+                        }
+                    ]
+                  }
+                dest: "/etc/osbuild-composer/repositories/aap-{{ aap_version }}-rhel-{{ rhel_version }}.repo"
+                mode: '0644'
+
+        - name: "block: config container registry"
+          block:
+
+            - name: Create dir /etc/osbuild-worker/
+              ansible.builtin.file:
+                path: /etc/osbuild-worker/
+                state: directory
+                mode: '0755'
+
+            - name: Create /etc/osbuild-worker/osbuild-worker.toml
+              ansible.builtin.copy:
+                content: |
+                  [containers]
+                  auth_file_path = "/etc/osbuild-worker/containers-auth.json"
+                dest: /etc/osbuild-worker/osbuild-worker.toml
+                mode: '0644'
+
+            - name: Copy container registry config file
+              ansible.builtin.copy:
+                src: "{{ local_container_registry_auth_file }}"
+                dest: /etc/osbuild-worker/containers-auth.json
+                mode: '0644'
+
+            - name: Test authentication to registry.redhat.io
+              ansible.builtin.command:
+                cmd: "podman login --authfile /etc/osbuild-worker/containers-auth.json registry.redhat.io"
+              register: result_podman_login
+
+            - name: "[debug] podman login"
+              ansible.builtin.debug:
+                msg: "{{ result_podman_login.stdout_lines }}"
+
+        - name: "Remove osbuild source (ignore errors)"
+          ansible.builtin.command:
+            cmd: "composer-cli sources remove aap-{{ aap_version }}-rhel-{{ rhel_version }}"
+          register: result_remove_source
+          ignore_errors: true
+
+        - name: "Add osbuild source"
+          ansible.builtin.command:
+            cmd: "composer-cli sources add {{ osbuild_workdir }}/source.toml"
+          register: result_add_source
+
+        - name: "Get list of sources"
+          ansible.builtin.command:
+            cmd: "composer-cli sources list"
+          register: result_list_sources
+
+        - name: "[debug] List of sources"
+          ansible.builtin.debug:
+            msg: "{{ result_list_sources.stdout_lines }}"
+
+    # ----------
+
+    - name: "Create osbuild pipeline file"
+      vars:
+        _public_key: "{{ lookup('file', local_public_key_file) }}"
+      ansible.builtin.copy:
+        content: |
+          name = "aap-installer"
+          description = ""
+          version = "0.0.1"
+          modules = []
+          groups = []
+          distro = ""
+
+          [[packages]]
+          name = "ansible-automation-platform-installer"
+
+          [[packages]]
+          name = "tmux"
+
+          [customizations]
+          [customizations.kernel]
+          append = ""
+
+          [[customizations.sshkey]]
+          user = "root"
+          key = "{{ _public_key | trim }}"
+          [customizations.timezone]
+          [customizations.locale]
+          [customizations.firewall]
+          [customizations.firewall.services]
+          [customizations.services]
+          [customizations.fdo]
+          [customizations.ignition]
+          [customizations.ignition.firstboot]
+
+        dest: "{{ osbuild_workdir }}/pipeline-aap-installer.toml"
+        mode: '0644'
+
+    - name: "Push osbuild pipeline from file"
+      ansible.builtin.command:
+        cmd: "composer-cli blueprints push {{ osbuild_workdir }}/pipeline-aap-installer.toml"
+      register: result_push_pipeline
+
+    - name: "[debug] Push osbuild pipeline"
+      ansible.builtin.debug:
+        msg: "{{ result_push_pipeline.stdout_lines }}"
