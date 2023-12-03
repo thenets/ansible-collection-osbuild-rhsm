@@ -1,2 +1,6 @@
 ---
-# defaults file for composer
+- local_public_key_file: ~/.ssh/id_rsa.pub
+- build_name: aap-installer
+
+- osbuild_workdir: "/tmp/osbuild-aap"
+- run_step_create_blueprint: true

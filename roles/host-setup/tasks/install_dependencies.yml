@@ -14,6 +14,8 @@
     name:
       - podman
     state: present
+  tags:
+    - install_dependencies
 
 # Based on https://access.redhat.com/documentation/pt-br/red_hat_enterprise_linux/9/html/configuring_and_managing_virtualization/assembly_enabling-virtualization-in-rhel-9_configuring-and-managing-virtualization
 - name: Install virtualization packages
@@ -24,6 +26,8 @@
       - virt-install
       - virt-viewer
     state: present
+  tags:
+    - install_dependencies
 
 - name: Enable libvirt service
   loop:
@@ -33,15 +37,21 @@
     name: "{{ item }}"
     state: started
     enabled: true
+  tags:
+    - install_dependencies
 
 - name: Validate host virtualization capabilities
   ansible.builtin.command:
     cmd: "virt-host-validate"
   register: result_virt_host_validate
+  tags:
+    - install_dependencies
 
 - name: "[debug] virt-host-validate"
   ansible.builtin.debug:
     msg: "{{ result_virt_host_validate.stdout_lines }}"
+  tags:
+    - install_dependencies
 
 - name: Install "composer-cli" package
   ansible.builtin.dnf:
@@ -50,26 +60,36 @@
       - osbuild-composer
       - composer-cli
     state: present
+  tags:
+    - install_dependencies
 
 - name: "Create /etc/osbuild-composer"
   ansible.builtin.file:
     path: /etc/osbuild-composer
     state: directory
     mode: '0755'
+  tags:
+    - install_dependencies
 
 - name: "Start osbuild-composer service"
   ansible.builtin.service:
     name: osbuild-composer.socket
     state: started
     enabled: true
+  tags:
+    - install_dependencies
 
 # HACK: wait for osbuild-composer to start
 - name: sleep 3
   ansible.builtin.pause:
     seconds: 3
+  tags:
+    - install_dependencies
 
 - name: "Check if composer-cli is working"
   ansible.builtin.command:
     cmd: "composer-cli status show"
   register: result_composer_status
   failed_when: result_composer_status.rc != 0
+  tags:
+    - install_dependencies

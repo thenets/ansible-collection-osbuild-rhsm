@@ -1,25 +1,17 @@
 ---
-
-- hosts: rhel-dev
+- name: Build Azure VM image
+  hosts: rhel-dev
   gather_facts: false
   become: true
-  vars:
-    # Required variables
-    - local_public_key_file: "{{ playbook_dir }}/secrets/id_rsa.pub"
-    - build_name: "aap-installer"
-
-    # TODO: fix all input validations
-    # - azure_storage_account_name: ""
-    # - azure_storage_account_access_key: ""
-    # - azure_storage_container_name: ""
-
-    # Optional variables
-    - osbuild_workdir: "/tmp/osbuild-aap"
-    - run_step_create_blueprint: true
-
   tasks:
+    - name: Assert Azure variables are set
+      ansible.builtin.assert:
+        that:
+          - azure_storage_account_name is defined
+          - azure_storage_account_access_key is defined
+          - azure_storage_container_name is defined
 
-    - name: "block: create osbuild blueprint"
+    - name: Create osbuild blueprint
       when: run_step_create_blueprint
       block:
         - name: "Create osbuild source directory"
@@ -87,7 +79,7 @@
     # Based on:
     # - https://www.redhat.com/en/blog/build-rhel-images-azure-image-builder
     # - https://www.osbuild.org/guides/image-builder-on-premises/uploading-to-azure.html
-    - name: "block: validate inputs"
+    - name: Validate inputs
       block:
         - name: "Validate {{ item }}"
           ansible.builtin.fail:

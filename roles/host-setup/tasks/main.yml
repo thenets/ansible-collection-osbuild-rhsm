@@ -1,0 +1,16 @@
+---
+- name: Assert that required variables are set
+  ansible.builtin.assert:
+    that:
+      - podman_username is set
+      - podman_password is set
+
+- name: Enable RHSM
+  ansible.builtin.import_task: enable_rhsm_repos
+  tags:
+    - enable_repos
+
+- name: Install Dependencies
+  ansible.builtin.import_task: install_dependencies
+  tags:
+    - install_dependencies

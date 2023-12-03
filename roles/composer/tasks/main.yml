@@ -1,2 +1,3 @@
 ---
-# tasks file for composer
+- name: Build Image
+  ansible.builtin.import_task: setup_osbuild_and_repos.yml

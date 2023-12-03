@@ -1,0 +1,4 @@
+---
+osbuild_workdir: /tmp/osbuild-aap
+aap_version: "2.4"
+rhel_version: "9"
