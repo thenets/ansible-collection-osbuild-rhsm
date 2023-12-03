@@ -2,6 +2,7 @@
 
 - hosts: rhel-dev
   gather_facts: false
+  become: true
   vars:
     # Required variables
     - local_public_key_file: "{{ playbook_dir }}/secrets/id_rsa.pub"
