@@ -6,11 +6,13 @@
       - podman_password is set
 
 - name: Enable RHSM
-  ansible.builtin.import_task: enable_rhsm_repos
+  ansible.builtin.import_tasks:
+    file: enable_rhsm_repos.yml
   tags:
     - enable_repos
 
 - name: Install Dependencies
-  ansible.builtin.import_task: install_dependencies
+  ansible.builtin.import_task:
+    file: install_dependencies.yml
   tags:
     - install_dependencies

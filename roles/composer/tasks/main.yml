@@ -1,3 +1,4 @@
 ---
 - name: Build Image
-  ansible.builtin.import_task: setup_osbuild_and_repos.yml
+  ansible.builtin.import_task:
+    file: setup_osbuild_and_repos.yml

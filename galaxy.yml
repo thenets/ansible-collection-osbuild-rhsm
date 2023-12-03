@@ -16,8 +16,7 @@ readme: README.md
 # A list of the collection's content authors. Can be just the name or in the format 'Full Name <email> (url)
 # @nicks:irc/im.site#channel'
 authors:
-- Luiz Felipe Fernandes Machado Costa <
-lufernan@redhat.com>
+- Luiz Felipe Fernandes Machado Costa <lufernan@redhat.com>
 - Scott Harwell <sharwell@redhat.com>
 
 
@@ -44,7 +43,7 @@ tags:
 # L(specifiers,https://python-semanticversion.readthedocs.io/en/latest/#requirement-specification). Multiple version
 # range specifiers can be set and are separated by ','
 dependencies:
-  community.general: ">=8.1.0"
+  community.general: ">=8.0.2"
 
 # The URL of the originating SCM repository
 repository: http://example.com/repository
