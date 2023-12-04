@@ -1,11 +1,12 @@
+---
 ancestor: null
 releases:
   1.0.0:
     changes:
       major_changes:
-      - Migrated repository to collection layout with roles.
-      - Resolved ansible-lint issues.
+        - Migrated repository to collection layout with roles.
+        - Resolved ansible-lint issues.
       release_summary: Created collection of roles for osbuild deployment.
     fragments:
-    - 1-init.yml
+      - 1-init.yml
     release_date: '2023-12-04'

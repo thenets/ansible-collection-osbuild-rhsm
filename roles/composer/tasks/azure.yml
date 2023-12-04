@@ -1,3 +1,4 @@
+---
 - name: Create azure.toml file
   ansible.builtin.template:
     src: azure.j2

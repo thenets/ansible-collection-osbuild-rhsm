@@ -1,5 +1,6 @@
 ---
 include:
+  - changelogs
   - docs
   - meta
   - playbooks
