@@ -5,5 +5,23 @@
       - podman_username is defined
       - podman_password is defined
 
-- name: Build Image
+- name: Setup osbuild and repos
   ansible.builtin.import_tasks: setup_osbuild_and_repos.yml
+
+- name: Create osbuild blueprint
+  when: run_step_create_blueprint
+  ansible.builtin.import_tasks: blueprint.yml
+
+- name: Create azure.toml file
+  ansible.builtin.import_tasks: azure.yml
+
+- name: Create a new build
+  vars:
+    _timestamp: "{{ lookup('pipe', 'date +%s') }}"
+  ansible.builtin.command:
+    cmd: "composer-cli compose start {{ composer_build_name }} vhd {{ composer_build_name }}-{{ _timestamp }} {{ composer_osbuild_workdir }}/azure.toml"
+  register: result_create_build
+
+- name: Debug build
+  ansible.builtin.debug:
+    msg: "{{ result_create_build.stdout_lines }}"

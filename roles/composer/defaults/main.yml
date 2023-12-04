@@ -5,3 +5,5 @@ composer_build_name: aap-installer
 composer_osbuild_workdir: /tmp/osbuild-aap
 composer_aap_version: "2.4"
 composer_rhel_version: "9"
+
+run_step_create_blueprint: true

@@ -44,6 +44,7 @@ tags:
 # range specifiers can be set and are separated by ','
 dependencies:
   community.general: ">=8.0.2"
+  containers.podman: ">=1.11.0"
 
 # The URL of the originating SCM repository
 repository: http://example.com/repository

@@ -1,7 +1,7 @@
 ---
 - name: Retrieve the repo data
   ansible.builtin.script:
-    cmd: "{{ playbook_dir }}/files/retrieve_repo_data.py {{ composer_aap_version }} {{ composer_rhel_version }}"
+    cmd: "files/retrieve_repo_data.py {{ composer_aap_version }} {{ composer_rhel_version }}"
     executable: python3
   register: result_repo_data
 
@@ -20,29 +20,11 @@
     repo_data: "{{ (result_repo_data.stdout | from_json).repo }}"
   block:
     - name: Create osbuild source file
-      ansible.builtin.copy:
-        content: |
-          id = "aap-{{ composer_aap_version }}-rhel-{{ composer_rhel_version }}"
-          name = "{{ repo_data.name }}"
-          type = "yum-baseurl"
-          url = "{{ repo_data.baseurl }}"
-          check_gpg = true
-          check_ssl = true
-          rhsm = true
-
-          {% set gpgkeys = ([''] + (repo_data.gpgkey | split('-----BEGIN'))[1:3]) | join(',-----BEGIN') | trim | split(',') %}
-          gpgkeys=[
-          {% for key in gpgkeys[1:2] %}
-          '''{{ key }}'''
-          {%- if not loop.last %},
-          {% endif %}
-          {% endfor %}
-          ]
+      ansible.builtin.template:
+        src: source.j2
         dest: "{{ composer_osbuild_workdir }}/source.toml"
         mode: "0644"
 
-    # TODO add source to osbuild-composer
-    #      create /etc/osbuild-composer/repositories/aap-2.4-rhel-9.repo
     - name: Create directory /etc/osbuild-composer/repositories/
       ansible.builtin.file:
         path: /etc/osbuild-composer/repositories/
@@ -51,19 +33,8 @@
         recurse: true
 
     - name: Define official repository overrides
-      ansible.builtin.copy:
-        content: |
-          {% set gpgkeys = ([''] + (repo_data.gpgkey | split('-----BEGIN'))[1:3]) | join(',-----BEGIN') | trim | split(',') %}
-          {
-            "x86_64": [
-                {
-                    "name": "aap-{{ composer_aap_version }}-rhel-{{ composer_rhel_version }}",
-                    "metalink": "{{ repo_data.baseurl }}",
-                    "gpgkey": {{ gpgkeys[1] | to_json }},
-                    "check_gpg": true
-                }
-            ]
-          }
+      ansible.builtin.template:
+        src: repo.j2
         dest: "/etc/osbuild-composer/repositories/aap-{{ composer_aap_version }}-rhel-{{ composer_rhel_version }}.repo"
         mode: "0644"
 
@@ -76,27 +47,18 @@
         mode: "0755"
 
     - name: Create /etc/osbuild-worker/osbuild-worker.toml
-      ansible.builtin.copy:
-        content: |
-          [containers]
-          auth_file_path = "/etc/osbuild-worker/containers-auth.json"
+      ansible.builtin.template:
+        src: worker.j2
         dest: /etc/osbuild-worker/osbuild-worker.toml
         mode: "0644"
 
-    - name: Copy container registry config file
-      ansible.builtin.copy:
-        src: "{{ local_container_registry_auth_file }}"
-        dest: /etc/osbuild-worker/containers-auth.json
-        mode: "0644"
-
-    - name: Test authentication to registry.redhat.io
-      ansible.builtin.command:
-        cmd: "podman login --authfile /etc/osbuild-worker/containers-auth.json registry.redhat.io"
+    - name: Login to the Red Hat registry with Podman
+      containers.podman.podman_login:
+        authfile: "{{ local_container_registry_auth_file }}"
+        username: "{{ podman_username }}"
+        password: "{{ podman_password }}"
+        registry: registry.redhat.io
       register: result_podman_login
-
-    - name: "[debug] podman login"
-      ansible.builtin.debug:
-        msg: "{{ result_podman_login.stdout_lines }}"
 
 - name: Remove osbuild source (ignore errors)
   ansible.builtin.command:
@@ -107,11 +69,14 @@
 - name: Add osbuild source
   ansible.builtin.command:
     cmd: "composer-cli sources add {{ composer_osbuild_workdir }}/source.toml"
+  changed_when: true
+  failed_when: result_add_source.rc != 0
   register: result_add_source
 
 - name: Get list of sources
   ansible.builtin.command:
     cmd: "composer-cli sources list"
+  changed_when: false
   register: result_list_sources
 
 - name: Debug list of sources
