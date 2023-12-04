@@ -63,6 +63,8 @@
 - name: Remove osbuild source (ignore errors)
   ansible.builtin.command:
     cmd: "composer-cli sources remove aap-{{ composer_aap_version }}-rhel-{{ composer_rhel_version }}"
+  changed_when: result_remove_source.rc == 0
+  failed_when: result_remove_source.rc == 1
   register: result_remove_source
   ignore_errors: true
 
