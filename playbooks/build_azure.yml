@@ -1,4 +1,3 @@
----
 - name: Build Azure VM image
   hosts: rhel-dev
   gather_facts: false
@@ -10,22 +9,20 @@
           - azure_storage_account_name is defined
           - azure_storage_account_access_key is defined
           - azure_storage_container_name is defined
-
     - name: Create osbuild blueprint
       when: run_step_create_blueprint
       block:
         - name: "Create osbuild source directory"
           ansible.builtin.file:
-            path: "{{ osbuild_workdir }}"
+            path: "{{ composer_osbuild_workdir }}"
             state: directory
             mode: '0755'
-
         - name: "Create osbuild pipeline file"
           vars:
-            _public_key: "{{ lookup('file', local_public_key_file) }}"
+            _public_key: "{{ lookup('file', composer_local_public_key_file) }}"
           ansible.builtin.copy:
             content: |
-              name = "{{ build_name }}"
+              name = "{{ composer_build_name }}"
               description = ""
               version = "0.0.1"
               modules = []
@@ -53,43 +50,22 @@
               [customizations.fdo]
               [customizations.ignition]
               [customizations.ignition.firstboot]
-
-            dest: "{{ osbuild_workdir }}/pipeline-{{ build_name }}.toml"
+            dest: "{{ composer_osbuild_workdir }}/pipeline-{{ composer_build_name }}.toml"
             mode: '0644'
-
         - name: "Push blueprint file to osbuild"
           ansible.builtin.command:
-            cmd: "composer-cli blueprints push {{ osbuild_workdir }}/pipeline-{{ build_name }}.toml"
+            cmd: "composer-cli blueprints push {{ composer_osbuild_workdir }}/pipeline-{{ composer_build_name }}.toml"
           register: result_push_pipeline
-
         - name: "[debug] Push blueprint file to osbuild"
           ansible.builtin.debug:
             msg: "{{ result_push_pipeline.stdout_lines }}"
-
         - name: "Resolve dependencies for the respective blueprint"
           ansible.builtin.command:
-            cmd: "composer-cli blueprints depsolve {{ build_name }}"
+            cmd: "composer-cli blueprints depsolve {{ composer_build_name }}"
           register: result_push_pipeline
-
         - name: "[debug] Resolve dependencies for the respective blueprint"
           ansible.builtin.debug:
             msg: "{{ result_push_pipeline.stdout_lines }}"
-
-
-    # Based on:
-    # - https://www.redhat.com/en/blog/build-rhel-images-azure-image-builder
-    # - https://www.osbuild.org/guides/image-builder-on-premises/uploading-to-azure.html
-    - name: Validate inputs
-      block:
-        - name: "Validate {{ item }}"
-          ansible.builtin.fail:
-            msg: "Variable {{ item }} is not defined"
-          when: "{{ item }} == ''"
-          loop:
-            - azure_storage_account_name
-            - azure_storage_account_access_key
-            - azure_storage_container_name
-
     - name: "Create azure.toml file"
       ansible.builtin.copy:
         content: |
@@ -98,16 +74,14 @@
           storageAccount = "{{ azure_storage_account_name }}"
           storageAccessKey = "{{ azure_storage_account_access_key }}"
           container = "{{ azure_storage_container_name }}"
-        dest: "{{ osbuild_workdir }}/azure.toml"
+        dest: "{{ composer_osbuild_workdir }}/azure.toml"
         mode: '0644'
-
-    - name: "Create a new build"
+    - name: Create a new build
       vars:
         _timestamp: "{{ lookup('pipe', 'date +%s') }}"
       ansible.builtin.command:
-        cmd: "composer-cli compose start {{ build_name }} vhd {{ build_name }}-{{ _timestamp }} {{ osbuild_workdir }}/azure.toml"
+        cmd: "composer-cli compose start {{ composer_build_name }} vhd {{ composer_build_name }}-{{ _timestamp }} {{ composer_osbuild_workdir }}/azure.toml"
       register: result_create_build
-
     - name: "[debug] Create a new build"
       ansible.builtin.debug:
         msg: "{{ result_create_build.stdout_lines }}"

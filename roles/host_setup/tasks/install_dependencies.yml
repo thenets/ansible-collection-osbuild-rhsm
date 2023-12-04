@@ -49,7 +49,7 @@
   tags:
     - install_dependencies
 
-- name: "[debug] virt-host-validate"
+- name: Debug virt-host-validate
   ansible.builtin.debug:
     msg: "{{ result_virt_host_validate.stdout_lines }}"
   tags:
@@ -65,7 +65,7 @@
   tags:
     - install_dependencies
 
-- name: "Create /etc/osbuild-composer"
+- name: Create /etc/osbuild-composer
   ansible.builtin.file:
     path: /etc/osbuild-composer
     state: directory
@@ -73,7 +73,7 @@
   tags:
     - install_dependencies
 
-- name: "Start osbuild-composer service"
+- name: Start osbuild-composer service
   ansible.builtin.service:
     name: osbuild-composer.socket
     state: started
@@ -82,13 +82,13 @@
     - install_dependencies
 
 # HACK: wait for osbuild-composer to start
-- name: sleep 3
+- name: Sleep 3
   ansible.builtin.pause:
     seconds: 3
   tags:
     - install_dependencies
 
-- name: "Check if composer-cli is working"
+- name: Check if composer-cli is working
   ansible.builtin.command:
     cmd: "composer-cli status show"
   register: result_composer_status
