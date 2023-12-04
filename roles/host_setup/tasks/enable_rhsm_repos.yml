@@ -2,6 +2,6 @@
 - name: Enable Ansible Automation Repository repository
   community.general.rhsm_repository:
     name:
-      - "ansible-automation-platform-{{ composer_aap_version }}-for-rhel-{{ composer_rhel_version }}-x86_64-rpms"
+      - "ansible-automation-platform-{{ host_setup_aap_version }}-for-rhel-{{ host_setup_rhel_version }}-x86_64-rpms"
   tags:
     - enable_repos

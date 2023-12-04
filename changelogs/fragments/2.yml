@@ -1,0 +1,8 @@
+---
+release_summary: Update repository removing unused variables and README cleanup.
+major_changes:
+  - Renamed `setup_host` role to `host_setup` to match naming convensions.
+minor_changes:
+  - README updates.
+  - Changed hosts to be "all" instead of "rhel-dev".
+  - Added mdlint file.
