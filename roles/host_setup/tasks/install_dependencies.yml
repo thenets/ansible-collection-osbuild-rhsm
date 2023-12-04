@@ -44,6 +44,8 @@
   ansible.builtin.command:
     cmd: "virt-host-validate"
   register: result_virt_host_validate
+  changed_when: false
+  failed_when: result_virt_host_validate.rc != 0
   tags:
     - install_dependencies
 
@@ -90,6 +92,7 @@
   ansible.builtin.command:
     cmd: "composer-cli status show"
   register: result_composer_status
+  changed_when: false
   failed_when: result_composer_status.rc != 0
   tags:
     - install_dependencies
