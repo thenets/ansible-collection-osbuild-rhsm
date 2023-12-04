@@ -12,6 +12,22 @@ Almost everything was based on the official [osbuild docs][os_build_docs].
 
 The following variables may be set to alter the behavior of this collection.
 
+| Variable Name                        | Description                                                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `azure_storage_account_name`         | The Azure storage account that will be used to publish the image.                                                                    |
+| `azure_storage_account_access_key`   | The Azure storage account access key that will be used to publish the image.                                                         |
+| `azure_storage_container_name`       | The Azure storage account container name that will be used to publish the image.                                                     |
+| `composer_build_image_version`       | A version number for the composer CLI to use for the image.                                                                          |
+| `host_setup_aap_version`             | The AAP version used to retrieve the AAP RPM repo.                                                                                   |
+| `host_setup_rhel_version`            | The RHEL version used to retrieve the AAP RPM repo.                                                                                  |
+| `composer_local_public_key_file`     | A public key that will be used for the root user of the image to enable SSH that will be replaced by cloud init in the cloud vendor. |
+| `composer_build_name`                | The name of the image build for composer.                                                                                            |
+| `composer_build_image_version`       | The version number of the image template.                                                                                            |
+| `composer_osbuild_workdir`           | The working directory on the build machine.                                                                                          |
+| `composer_aap_version`               | The version of AAP to use to retrieve AAP installer RPMs.                                                                            |
+| `composer_rhel_version`              | The version of RHEL used to retrieve AAP installer RPMs.                                                                             |
+| `composer_run_step_create_blueprint` | Flag to indicate whether or not to run the create blueprint step.                                                                    |
+
 ## Instructions
 
 ### Prepare your accounts
