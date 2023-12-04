@@ -1,3 +1,4 @@
+---
 - name: Build Azure VM image
   hosts: rhel-dev
   gather_facts: false
@@ -9,6 +10,7 @@
           - azure_storage_account_name is defined
           - azure_storage_account_access_key is defined
           - azure_storage_container_name is defined
+
     - name: Create osbuild blueprint
       when: run_step_create_blueprint
       block:
@@ -33,7 +35,7 @@
               name = "ansible-automation-platform-installer"
 
               [[packages]]
-              name = "tmux"
+              name = "WALinuxAgent"
 
               [customizations]
               [customizations.kernel]
@@ -66,6 +68,7 @@
         - name: "[debug] Resolve dependencies for the respective blueprint"
           ansible.builtin.debug:
             msg: "{{ result_push_pipeline.stdout_lines }}"
+
     - name: "Create azure.toml file"
       ansible.builtin.copy:
         content: |
@@ -76,12 +79,14 @@
           container = "{{ azure_storage_container_name }}"
         dest: "{{ composer_osbuild_workdir }}/azure.toml"
         mode: '0644'
+
     - name: Create a new build
       vars:
         _timestamp: "{{ lookup('pipe', 'date +%s') }}"
       ansible.builtin.command:
         cmd: "composer-cli compose start {{ composer_build_name }} vhd {{ composer_build_name }}-{{ _timestamp }} {{ composer_osbuild_workdir }}/azure.toml"
       register: result_create_build
+
     - name: "[debug] Create a new build"
       ansible.builtin.debug:
         msg: "{{ result_create_build.stdout_lines }}"

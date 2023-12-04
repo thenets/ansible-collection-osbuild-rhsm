@@ -1,3 +1,4 @@
+---
 # Install the dependencies to run osbuild-composer
 #
 # - podman:
@@ -7,7 +8,6 @@
 # - weldr-client/osbuild-composer/composer-cli:
 #     main osbuild packages
 #
----
 
 - name: Install podman
   ansible.builtin.dnf:
