@@ -1,0 +1,4 @@
+---
+release_summary: Bug fixes
+minor_changes:
+  - Updated use of `shell` command to `copy` and `cmd` since the shell command does not report on stderror.
