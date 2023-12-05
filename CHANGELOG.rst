@@ -5,6 +5,19 @@ Lab.Osbuild Release Notes
 .. contents:: Topics
 
 
+v1.0.2
+======
+
+Release Summary
+---------------
+
+Bug fixes
+
+Minor Changes
+-------------
+
+- Updated use of `shell` command to `copy` and `cmd` since the shell command does not report on stderror.
+
 v1.0.1
 ======
 
