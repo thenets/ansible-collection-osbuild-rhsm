@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import os
 import configparser
@@ -30,7 +32,6 @@ def get_repo_data():
         sys.exit(1)
 
     return output_repo
-
 
 # Get arguments
 composer_aap_version = sys.argv[1]
