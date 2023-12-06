@@ -1,0 +1,15 @@
+FROM docker.io/redhat/ubi9:latest
+
+RUN set -ex \
+    && dnf install -y \
+        ansible
+
+WORKDIR /tests/
+ADD ./tests/playbook-* ./
+ADD ./tests/inventory ./
+
+# Copy role to /usr/share/ansible/roles
+ADD ./ /usr/share/ansible/roles/osbuild-rhsm
+
+RUN set -ex \
+    && ansible-playbook -i inventory playbook-setup-host.yml
