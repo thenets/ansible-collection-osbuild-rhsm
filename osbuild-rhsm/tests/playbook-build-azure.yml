@@ -4,17 +4,22 @@
   gather_facts: false
   vars:
     # Required variables
-    - local_public_key_file: "{{ playbook_dir }}/secrets/id_rsa.pub"
-    - build_name: "aap-installer"
+    local_public_key_file: "{{ playbook_dir }}/secrets/id_rsa.pub"
+    build_name: "aap-installer"
+
+    # Packages to be installed
+    packages:
+      - ansible-automation-platform-installer
+      - WALinuxAgent
 
     # TODO: fix all input validations
-    # - azure_storage_account_name: ""
-    # - azure_storage_account_access_key: ""
-    # - azure_storage_container_name: ""
+    # azure_storage_account_name: ""
+    # azure_storage_account_access_key: ""
+    # azure_storage_container_name: ""
 
     # Optional variables
-    - osbuild_workdir: "/tmp/osbuild-aap"
-    - run_step_create_blueprint: true
+    osbuild_workdir: "/tmp/osbuild-aap"
+    run_step_create_blueprint: true
 
   tasks:
 
@@ -39,11 +44,10 @@
               groups = []
               distro = ""
 
+              {% for package in packages %}
               [[packages]]
-              name = "ansible-automation-platform-installer"
-
-              [[packages]]
-              name = "tmux"
+              name = "{{ package }}"
+              {% endfor %}
 
               [customizations]
               [customizations.kernel]
