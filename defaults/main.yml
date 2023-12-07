@@ -1,2 +1,15 @@
 ---
 # defaults file for osbuild-rhsm
+
+# Required variables
+local_container_registry_auth_file: "{{ playbook_dir }}/secrets/container-authfile.json"
+rhsm_repos:
+  - "ansible-automation-platform-2.4-for-rhel-9-x86_64-rpms"
+
+# Optional variables
+osbuild_workdir: "/tmp/osbuild-aap"
+run_step_install_packages_osbuild: true
+run_step_install_packages_container: true
+run_step_install_packages_hypervisor: true
+run_step_enable_rhsm_repos: true
+run_step_setup_osbuild: true

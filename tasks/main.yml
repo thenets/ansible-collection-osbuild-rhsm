@@ -1,2 +1,26 @@
 ---
 # tasks file for osbuild-rhsm
+
+# Install dependencies
+# --------------------
+- name: "[include task] ./tasks/install_deps_container.yml"
+  when: run_step_install_packages_container
+  include_tasks: ./tasks/install_deps_container.yml
+- name: "[include task] ./tasks/install_deps_hypervisor.yml"
+  when: run_step_install_packages_hypervisor
+  include_tasks: ./tasks/install_deps_hypervisor.yml
+- name: "[include task] ./tasks/install_deps_osbuild.yml"
+  when: run_step_install_packages_osbuild
+  include_tasks: ./tasks/install_deps_osbuild.yml
+
+# Subscription Manager
+# --------------------
+- name: "[include task] ./tasks/enable_rhsm_repos.yml"
+  when: run_step_enable_rhsm_repos
+  include_tasks: ./tasks/enable_rhsm_repos.yml
+
+# Setup osbuild config files and repos
+# ------------------------------------
+- name: "[include task] ./tasks/setup_osbuild_and_repos.yml"
+  when: run_step_setup_osbuild
+  include_tasks: ./tasks/setup_osbuild_and_repos.yml
