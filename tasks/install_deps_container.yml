@@ -1,0 +1,10 @@
+# Install the dependencies to run osbuild-composer
+#
+# - podman:
+#     required if the build will consume container images
+---
+- name: Install podman
+  ansible.builtin.dnf:
+    name:
+      - podman
+    state: present
