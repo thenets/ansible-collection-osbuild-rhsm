@@ -1,0 +1,32 @@
+ancestor: null
+releases:
+  1.0.0:
+    changes:
+      major_changes:
+      - Migrated repository to collection layout with roles.
+      - Resolved ansible-lint issues.
+      release_summary: Created collection of roles for osbuild deployment.
+    fragments:
+    - 1-init.yml
+    release_date: '2023-12-04'
+  1.0.1:
+    changes:
+      major_changes:
+      - Renamed `setup_host` role to `host_setup` to match naming conventions.
+      minor_changes:
+      - Added mdlint file.
+      - Changed hosts to be "all" instead of "rhel-dev".
+      - README updates.
+      release_summary: Update repository removing unused variables and README cleanup.
+    fragments:
+    - 2.yml
+    release_date: '2023-12-04'
+  1.0.2:
+    changes:
+      minor_changes:
+      - Updated use of `shell` command to `copy` and `cmd` since the shell command
+        does not report on stderror.
+      release_summary: Bug fixes
+    fragments:
+    - 3-fixes.yml
+    release_date: '2023-12-05'

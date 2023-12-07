@@ -1,0 +1,9 @@
+---
+- name: Setup hosts
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Run setup hosts role
+      ansible.builtin.import_role:
+        name: lab.osbuild.host_setup

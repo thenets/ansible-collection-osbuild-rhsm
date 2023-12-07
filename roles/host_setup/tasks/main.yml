@@ -1,0 +1,10 @@
+---
+- name: Enable RHSM
+  ansible.builtin.import_tasks: enable_rhsm_repos.yml
+  tags:
+    - enable_repos
+
+- name: Install Dependencies
+  ansible.builtin.import_tasks: install_dependencies.yml
+  tags:
+    - install_dependencies

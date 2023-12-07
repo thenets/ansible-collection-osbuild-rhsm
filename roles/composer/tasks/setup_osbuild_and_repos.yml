@@ -1,0 +1,94 @@
+---
+# Copy script and run it remotely to get stderror and stdout from script
+- name: Copy script to server
+  ansible.builtin.copy:
+    src: "files/retrieve_repo_data.py"
+    dest: "{{ composer_osbuild_workdir }}/retrieve_repo_data.py"
+    mode: "0755"
+  register: result_repo_data
+
+- name: Run script to retrieve the repo data
+  ansible.builtin.command:
+    cmd: "{{ composer_osbuild_workdir }}/retrieve_repo_data.py {{ composer_aap_version }} {{ composer_rhel_version }}"
+  changed_when: result_repo_data.rc == 0
+  failed_when: result_repo_data.rc == 1
+  register: result_repo_data
+
+- name: Debug Repo data
+  ansible.builtin.debug:
+    msg: "{{ (result_repo_data.stdout | from_json) }}"
+
+- name: Create osbuild source directory
+  ansible.builtin.file:
+    path: "{{ composer_osbuild_workdir }}"
+    state: directory
+    mode: "0755"
+
+- name: Create config files
+  vars:
+    repo_data: "{{ (result_repo_data.stdout | from_json).repo }}"
+  block:
+    - name: Create osbuild source file
+      ansible.builtin.template:
+        src: source.j2
+        dest: "{{ composer_osbuild_workdir }}/source.toml"
+        mode: "0644"
+
+    - name: Create directory /etc/osbuild-composer/repositories/
+      ansible.builtin.file:
+        path: /etc/osbuild-composer/repositories/
+        state: directory
+        mode: "0755"
+        recurse: true
+
+    - name: Define official repository overrides
+      ansible.builtin.template:
+        src: repo.j2
+        dest: "/etc/osbuild-composer/repositories/aap-{{ composer_aap_version }}-rhel-{{ composer_rhel_version }}.repo"
+        mode: "0644"
+
+- name: Config container registry
+  block:
+    - name: Create dir /etc/osbuild-worker/
+      ansible.builtin.file:
+        path: /etc/osbuild-worker/
+        state: directory
+        mode: "0755"
+
+    - name: Create /etc/osbuild-worker/osbuild-worker.toml
+      ansible.builtin.template:
+        src: worker.j2
+        dest: /etc/osbuild-worker/osbuild-worker.toml
+        mode: "0644"
+
+    - name: Login to the Red Hat registry with Podman
+      containers.podman.podman_login:
+        username: "{{ podman_username }}"
+        password: "{{ podman_password }}"
+        registry: registry.redhat.io
+      register: result_podman_login
+
+- name: Remove osbuild source (ignore errors)
+  ansible.builtin.command:
+    cmd: "composer-cli sources remove aap-{{ composer_aap_version }}-rhel-{{ composer_rhel_version }}"
+  changed_when: result_remove_source.rc == 0
+  failed_when: result_remove_source.rc == 1
+  register: result_remove_source
+  ignore_errors: true
+
+- name: Add osbuild source
+  ansible.builtin.command:
+    cmd: "composer-cli sources add {{ composer_osbuild_workdir }}/source.toml"
+  changed_when: true
+  failed_when: result_add_source.rc != 0
+  register: result_add_source
+
+- name: Get list of sources
+  ansible.builtin.command:
+    cmd: "composer-cli sources list"
+  changed_when: false
+  register: result_list_sources
+
+- name: Debug list of sources
+  ansible.builtin.debug:
+    msg: "{{ result_list_sources.stdout_lines }}"

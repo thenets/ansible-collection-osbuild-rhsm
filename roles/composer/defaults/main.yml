@@ -1,0 +1,10 @@
+---
+composer_local_public_key_file: ~/.ssh/id_rsa.pub
+composer_build_name: aap-installer
+composer_build_image_version: "1.0.0"
+
+composer_osbuild_workdir: /tmp/osbuild-aap
+composer_aap_version: "2.4"
+composer_rhel_version: "9"
+
+composer_run_step_create_blueprint: true
