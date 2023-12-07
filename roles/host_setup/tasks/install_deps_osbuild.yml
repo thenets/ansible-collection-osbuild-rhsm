@@ -1,0 +1,36 @@
+# Install the dependencies to run osbuild-composer
+#
+# - weldr-client/osbuild-composer/composer-cli:
+#     main osbuild packages
+---
+
+- name: Install "composer-cli" package
+  ansible.builtin.dnf:
+    name:
+      - weldr-client
+      - osbuild-composer
+      - composer-cli
+    state: present
+
+- name: "Create /etc/osbuild-composer"
+  ansible.builtin.file:
+    path: /etc/osbuild-composer
+    state: directory
+    mode: '0755'
+
+- name: "Start osbuild-composer service"
+  ansible.builtin.service:
+    name: osbuild-composer.socket
+    state: started
+    enabled: true
+
+# HACK: wait for osbuild-composer to start
+- name: sleep 3
+  ansible.builtin.pause:
+    seconds: 3
+
+- name: "Check if composer-cli is working"
+  ansible.builtin.command:
+    cmd: "composer-cli status show"
+  register: result_composer_status
+  failed_when: result_composer_status.rc != 0

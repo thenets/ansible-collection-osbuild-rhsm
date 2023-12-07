@@ -1,10 +1,36 @@
 ---
-- name: Enable RHSM
-  ansible.builtin.import_tasks: enable_rhsm_repos.yml
+# tasks file for osbuild-rhsm
+
+# Install dependencies
+# --------------------
+- name: "[include task] ./tasks/install_deps_container.yml"
+  when: host_setup_run_step_install_packages_container
+  include_tasks: ./tasks/install_deps_container.yml
+  tags:
+    - install_dependencies
+- name: "[include task] ./tasks/install_deps_hypervisor.yml"
+  when: host_setup_run_step_install_packages_hypervisor
+  tags:
+    - install_dependencies
+  include_tasks: ./tasks/install_deps_hypervisor.yml
+- name: "[include task] ./tasks/install_deps_osbuild.yml"
+  when: host_setup_run_step_install_packages_osbuild
+  include_tasks: ./tasks/install_deps_osbuild.yml
+  tags:
+    - install_dependencies
+
+# Subscription Manager
+# --------------------
+- name: "[include task] ./tasks/enable_rhsm_repos.yml"
+  when: host_setup_run_step_enable_rhsm_repos
+  include_tasks: ./tasks/enable_rhsm_repos.yml
   tags:
     - enable_repos
 
-- name: Install Dependencies
-  ansible.builtin.import_tasks: install_dependencies.yml
+# Setup osbuild config files and repos
+# ------------------------------------
+- name: "[include task] ./tasks/setup_osbuild_and_repos.yml"
+  when: host_setup_run_step_setup_osbuild
+  include_tasks: ./tasks/setup_osbuild_and_repos.yml
   tags:
-    - install_dependencies
+    - setup_osbuild
