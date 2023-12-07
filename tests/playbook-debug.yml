@@ -1,0 +1,13 @@
+---
+
+- hosts: rhel-dev
+  gather_facts: false
+  vars:
+    run_step_install_packages_osbuild: false
+    run_step_install_packages_container: false
+    run_step_install_packages_hypervisor: false
+    run_step_enable_rhsm_repos: false
+    run_step_setup_osbuild: true
+
+  roles:
+    - "{{ playbook_dir }}/../"

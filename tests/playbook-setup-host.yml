@@ -4,15 +4,15 @@
   gather_facts: false
   vars:
     # Required variables
-    - local_container_registry_auth_file: "{{ playbook_dir }}/secrets/container-authfile.json"
+    local_container_registry_auth_file: "{{ playbook_dir }}/secrets/container-authfile.json"
 
     # Optional variables
-    - osbuild_workdir: "/tmp/osbuild-aap"
-    - aap_version: "2.4"
-    - rhel_version: "9"
-    - run_step_install_packages: true
-    - run_step_enable_rhsm_repos: true
-    - run_step_setup_osbuild: true
+    osbuild_workdir: "/tmp/osbuild-aap"
+    aap_version: "2.4"
+    rhel_version: "9"
+    run_step_install_packages: true
+    run_step_enable_rhsm_repos: true
+    run_step_setup_osbuild: true
 
 
   tasks:
