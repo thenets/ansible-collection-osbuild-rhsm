@@ -1,7 +1,7 @@
 all: setup-host build
 
 play-build-azure:
-	ansible-playbook -i tests/inventory tests/playbook-build-azure.yml -vv
+	ansible-playbook -vv thenets.osbuild.build_azure
 
 play-host-setup:
 	ansible-playbook -vv thenets.osbuild.host_setup

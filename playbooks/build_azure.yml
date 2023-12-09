@@ -10,6 +10,7 @@
           - azure_storage_account_name is defined
           - azure_storage_account_access_key is defined
           - azure_storage_container_name is defined
+        fail_msg: "Azure variables are not set"
 
     - name: Import composer role
       ansible.builtin.import_role:

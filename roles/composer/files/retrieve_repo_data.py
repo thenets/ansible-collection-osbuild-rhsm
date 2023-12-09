@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sys
 import os
 import configparser
@@ -8,9 +6,9 @@ import json
 def get_hostname():
     return os.popen('hostname').read().strip()
 
-def get_repo_data():
+def get_repo_data(repo_section_name):
     repo_file = '/etc/yum.repos.d/redhat.repo'
-    repo_section_name = "ansible-automation-platform-2.4-for-rhel-9-x86_64-rpms"
+
     try:
         config = configparser.ConfigParser()
         config.read(repo_file)
@@ -33,24 +31,17 @@ def get_repo_data():
 
     return output_repo
 
+
 # Get arguments
-composer_aap_version = sys.argv[1]
-composer_rhel_version = sys.argv[2]
+rhsm_repo = sys.argv[1]
 
-allowed_composer_aap_versions = ["2.4"]
-allowed_composer_rhel_versions = ["9"]
-
-if composer_aap_version not in allowed_composer_aap_versions:
-    print("ERROR: AAP version not supported")
-    sys.exit(1)
-
-if composer_rhel_version not in allowed_composer_rhel_versions:
-    print("ERROR: RHEL version not supported")
+if not rhsm_repo:
+    print("ERROR: No RHSM repo provided")
     sys.exit(1)
 
 # Output
 output = {}
 output['hostname'] = get_hostname()
-output['repo'] = get_repo_data()
+output['repo'] = get_repo_data(rhsm_repo)
 
 print(json.dumps(output))
