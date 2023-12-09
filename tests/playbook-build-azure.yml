@@ -1,0 +1,126 @@
+---
+
+- hosts: rhel-dev
+  gather_facts: false
+  vars:
+    # Required variables
+    local_public_key_file: "{{ playbook_dir }}/secrets/id_rsa.pub"
+    build_name: "aap-installer"
+
+    # Packages to be installed
+    packages:
+      - ansible-automation-platform-installer
+      - WALinuxAgent
+
+    # TODO: fix all input validations
+    # azure_storage_account_name: ""
+    # azure_storage_account_access_key: ""
+    # azure_storage_container_name: ""
+
+    # Optional variables
+    osbuild_workdir: "/tmp/osbuild-aap"
+    run_step_create_blueprint: true
+
+  tasks:
+
+    - name: "block: create osbuild blueprint"
+      when: run_step_create_blueprint
+      block:
+        - name: "Create osbuild source directory"
+          ansible.builtin.file:
+            path: "{{ osbuild_workdir }}"
+            state: directory
+            mode: '0755'
+
+        - name: "Create osbuild pipeline file"
+          vars:
+            _public_key: "{{ lookup('file', local_public_key_file) }}"
+          ansible.builtin.copy:
+            content: |
+              name = "{{ build_name }}"
+              description = ""
+              version = "0.0.1"
+              modules = []
+              groups = []
+              distro = ""
+
+              {% for package in packages %}
+              [[packages]]
+              name = "{{ package }}"
+              {% endfor %}
+
+              [customizations]
+              [customizations.kernel]
+              append = ""
+
+              [[customizations.sshkey]]
+              user = "root"
+              key = "{{ _public_key | trim }}"
+              [customizations.timezone]
+              [customizations.locale]
+              [customizations.firewall]
+              [customizations.firewall.services]
+              [customizations.services]
+              enabled = ["waagent"]
+              disabled = []
+              [customizations.fdo]
+              [customizations.ignition]
+              [customizations.ignition.firstboot]
+
+            dest: "{{ osbuild_workdir }}/pipeline-{{ build_name }}.toml"
+            mode: '0644'
+
+        - name: "Push blueprint file to osbuild"
+          ansible.builtin.command:
+            cmd: "composer-cli blueprints push {{ osbuild_workdir }}/pipeline-{{ build_name }}.toml"
+          register: result_push_pipeline
+
+        - name: "[debug] Push blueprint file to osbuild"
+          ansible.builtin.debug:
+            msg: "{{ result_push_pipeline.stdout_lines }}"
+
+        - name: "Resolve dependencies for the respective blueprint"
+          ansible.builtin.command:
+            cmd: "composer-cli blueprints depsolve {{ build_name }}"
+          register: result_push_pipeline
+
+        - name: "[debug] Resolve dependencies for the respective blueprint"
+          ansible.builtin.debug:
+            msg: "{{ result_push_pipeline.stdout_lines }}"
+
+
+    # Based on:
+    # - https://www.redhat.com/en/blog/build-rhel-images-azure-image-builder
+    # - https://www.osbuild.org/guides/image-builder-on-premises/uploading-to-azure.html
+    - name: "block: validate inputs"
+      block:
+        - name: "Validate {{ item }}"
+          ansible.builtin.fail:
+            msg: "Variable {{ item }} is not defined"
+          when: "{{ item }} == ''"
+          loop:
+            - azure_storage_account_name
+            - azure_storage_account_access_key
+            - azure_storage_container_name
+
+    - name: "Create azure.toml file"
+      ansible.builtin.copy:
+        content: |
+          provider = "azure"
+          [settings]
+          storageAccount = "{{ azure_storage_account_name }}"
+          storageAccessKey = "{{ azure_storage_account_access_key }}"
+          container = "{{ azure_storage_container_name }}"
+        dest: "{{ osbuild_workdir }}/azure.toml"
+        mode: '0644'
+
+    - name: "Create a new build"
+      vars:
+        _timestamp: "{{ lookup('pipe', 'date +%s') }}"
+      ansible.builtin.command:
+        cmd: "composer-cli compose start {{ build_name }} vhd {{ build_name }}-{{ _timestamp }} {{ osbuild_workdir }}/azure.toml"
+      register: result_create_build
+
+    - name: "[debug] Create a new build"
+      ansible.builtin.debug:
+        msg: "{{ result_create_build.stdout_lines }}"
