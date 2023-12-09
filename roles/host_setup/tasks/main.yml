@@ -18,19 +18,3 @@
   include_tasks: ./tasks/install_deps_osbuild.yml
   tags:
     - install_dependencies
-
-# Subscription Manager
-# --------------------
-- name: "[include task] ./tasks/enable_rhsm_repos.yml"
-  when: host_setup_run_step_enable_rhsm_repos
-  include_tasks: ./tasks/enable_rhsm_repos.yml
-  tags:
-    - enable_repos
-
-# Setup osbuild config files and repos
-# ------------------------------------
-- name: "[include task] ./tasks/setup_osbuild_and_repos.yml"
-  when: host_setup_run_step_setup_osbuild
-  include_tasks: ./tasks/setup_osbuild_and_repos.yml
-  tags:
-    - setup_osbuild

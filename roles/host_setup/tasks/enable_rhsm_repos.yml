@@ -1,9 +1,0 @@
-# All RHSM repos required by the "composer-cli" blueprint must be enabled
-# on the host machine.
----
-
-- name: Enable Ansible Automation Repository repository
-  community.general.rhsm_repository:
-    name:
-      - "{{ item}}"
-  loop: "{{ rhsm_repos }}"
