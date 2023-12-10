@@ -1,0 +1,26 @@
+---
+- name: Repo lookup test
+  hosts: all
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Get repo data from default path
+      lab.osbuild.repo_info:
+        repo: ansible-automation-platform-2.4-for-rhel-9-x86_64-rpms
+      register: repo_results
+
+    - name: Debug repo
+      ansible.builtin.debug:
+        var: repo_results
+
+    - name: Get repo data from set path
+      lab.osbuild.repo_info:
+        repo: ansible-automation-platform-2.4-for-rhel-9-x86_64-rpms
+        path: /etc/yum.repos.d/redhat.repo
+      register: repo_results2
+
+    - name: Fail a repo test
+      lab.osbuild.repo_info:
+        repo: this-does-not-exist
+      failed_when: false
+      register: failed_repo_results

@@ -1,12 +1,12 @@
 id = "aap-{{ composer_aap_version }}-rhel-{{ composer_rhel_version }}"
-name = "{{ repo_data.name }}"
+name = "{{ repo_data.repo_response.name }}"
 type = "yum-baseurl"
-url = "{{ repo_data.baseurl }}"
+url = "{{ repo_data.repo_response.baseurl }}"
 check_gpg = true
 check_ssl = true
 rhsm = true
 
-{% set gpgkeys = ([''] + (repo_data.gpgkey | split('-----BEGIN'))[1:3]) | join(',-----BEGIN') | trim | split(',') %}
+{% set gpgkeys = ([''] + (repo_data.repo_response.gpgkey | split('-----BEGIN'))[1:3]) | join(',-----BEGIN') | trim | split(',') %}
 gpgkeys=[
 {% for key in gpgkeys[1:2] %}
 '''{{ key }}'''

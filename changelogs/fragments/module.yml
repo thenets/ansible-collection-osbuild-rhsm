@@ -1,0 +1,4 @@
+---
+release_summary: Converted python scripts to Ansible modules.
+major_changes:
+  - Converted python scripts to Ansible modules.
