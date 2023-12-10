@@ -1,0 +1,10 @@
+{
+    "x86_64": [
+        {
+            "name": "EPEL",
+            "metalink": "https://download.fedoraproject.org/pub/epel/{{ composer_rhel_version }}/Everything/x86_64",
+            "gpgkey": {{ epel_gpg_key | to_json }},
+            "check_gpg": true
+        }
+    ]
+}

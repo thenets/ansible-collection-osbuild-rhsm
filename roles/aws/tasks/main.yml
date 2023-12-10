@@ -1,0 +1,6 @@
+---
+- name: Import S3 tasks
+  ansible.builtin.import_tasks: s3.yml
+
+- name: Import IAM tasks
+  ansible.builtin.import_tasks: iam.yml

@@ -1,0 +1,24 @@
+---
+composer_local_public_key_file: ~/.ssh/id_rsa.pub
+
+composer_osbuild_workdir: /tmp/osbuild-aap
+composer_aap_version: "2.4"
+composer_rhel_version: "9"
+composer_rhel_distro: "rhel-93"
+composer_podman_auth_file_location: /etc/osbuild-worker/containers-auth.json
+composer_build_image_version: "1.0.0"
+
+composer_create_blueprints: true
+composer_add_epel_repo: false
+
+composer_clouds:
+  - name: azure
+    image_format: vhd
+  - name: aws
+    image_format: ami
+
+composer_azure_storage_container_name: vmimagecontainer
+
+composer_aws_region: us-east-1
+composer_aws_bucket: vm-image-imports
+composer_aws_image_key: aap-installer-rhel-9

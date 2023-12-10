@@ -1,0 +1,7 @@
+---
+aws_region: us-east-1
+aws_iam_import_group_name: admin
+aws_iam_import_role_policy_name: vmimport
+aws_iam_import_trust_policy_name: vmimport
+aws_s3_import_bucket: vm-image-imports
+aws_s3_export_bucket: vm-image-exports

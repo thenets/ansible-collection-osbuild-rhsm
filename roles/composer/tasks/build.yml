@@ -1,0 +1,13 @@
+---
+- name: Create a new image build
+  vars:
+    _timestamp: "{{ lookup('pipe', 'date +%s') }}"
+  ansible.builtin.command:
+    cmd: "composer-cli compose start {{ cloud.name }} {{ cloud.image_format }} {{ cloud.name }}-{{ _timestamp }} {{ composer_osbuild_workdir }}/{{ cloud.name }}-config.toml"
+  changed_when: result_create_build.rc == 0
+  failed_when: result_create_build.rc == 1
+  register: result_create_build
+
+- name: Debug image build
+  ansible.builtin.debug:
+    msg: "{{ result_create_build.stdout_lines }}"

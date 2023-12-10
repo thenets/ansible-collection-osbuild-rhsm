@@ -1,0 +1,11 @@
+id = "epel"
+name = "EPEL"
+type = "yum-baseurl"
+url = "https://download.fedoraproject.org/pub/epel/{{ composer_rhel_version }}/Everything/x86_64"
+check_gpg = true
+check_ssl = true
+rhsm = false
+
+gpgkeys=[
+'''{{ epel_gpg_key }}'''
+]

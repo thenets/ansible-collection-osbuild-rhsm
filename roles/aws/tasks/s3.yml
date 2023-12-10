@@ -1,0 +1,12 @@
+---
+- name: Create import images S3 bucket
+  amazon.aws.s3_bucket:
+    name: "{{ aws_s3_import_bucket }}"
+    region: "{{ aws_region }}"
+    state: present
+
+- name: Create export images S3 bucket
+  amazon.aws.s3_bucket:
+    name: "{{ aws_s3_export_bucket }}"
+    region: "{{ aws_region }}"
+    state: present

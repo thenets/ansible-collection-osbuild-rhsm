@@ -1,0 +1,19 @@
+---
+- name: Build Azure VM image
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Assert Azure variables are set
+      ansible.builtin.assert:
+        that:
+          - composer_azure_storage_account_name is defined
+          - composer_azure_storage_account_access_key is defined
+          - composer_azure_storage_container_name is defined
+          - composer_aws_access_key_id is defined
+          - composer_aws_secret_access_key is defined
+          - composer_aws_session_token is defined
+
+    - name: Import composer role
+      ansible.builtin.import_role:
+        name: composer

@@ -1,0 +1,25 @@
+name = "{{ composer_build_name }}"
+description = "AWS RHEL 9 image with AAP installer"
+version = "{{ composer_build_image_version }}"
+modules = []
+groups = []
+distro = "{{ composer_rhel_distro }}"
+
+[[packages]]
+name = "ansible-automation-platform-installer"
+
+[customizations]
+[customizations.kernel]
+append = ""
+
+[[customizations.sshkey]]
+user = "root"
+key = "{{ _public_key | trim }}"
+[customizations.timezone]
+[customizations.locale]
+[customizations.firewall]
+[customizations.firewall.services]
+[customizations.services]
+[customizations.fdo]
+[customizations.ignition]
+[customizations.ignition.firstboot]

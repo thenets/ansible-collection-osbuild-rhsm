@@ -1,0 +1,9 @@
+---
+- name: Setup AWS account resources
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Import aws role
+      ansible.builtin.import_role:
+        name: aws

@@ -1,0 +1,6 @@
+---
+azure_region: eastus
+azure_resource_group: rg
+azure_storage_account_name: vmimagesaccount
+azure_storage_account_type: Standard_RAGRS
+azure_storage_container_name: vmimagecontainer

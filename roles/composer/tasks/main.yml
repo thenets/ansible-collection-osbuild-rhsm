@@ -1,0 +1,28 @@
+---
+- name: Assert that required variables are set
+  ansible.builtin.assert:
+    that:
+      - podman_username is defined
+      - podman_password is defined
+
+- name: Setup osbuild and repos
+  ansible.builtin.import_tasks: setup_osbuild_and_repos.yml
+
+- name: Create osbuild blueprints
+  vars:
+    composer_build_name: "{{ item.name }}"
+  ansible.builtin.include_tasks: blueprint.yml
+  loop: "{{ composer_clouds }}"
+  when: composer_create_blueprints
+
+- name: Create credentials files
+  vars:
+    cloud: "{{ item.name }}"
+  ansible.builtin.include_tasks: credentials.yml
+  loop: "{{ composer_clouds }}"
+
+- name: Build image
+  vars:
+    cloud: "{{ item }}"
+  ansible.builtin.include_tasks: build.yml
+  loop: "{{ composer_clouds }}"

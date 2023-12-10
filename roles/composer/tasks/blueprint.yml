@@ -1,0 +1,36 @@
+---
+- name: Create osbuild source directory
+  ansible.builtin.file:
+    path: "{{ composer_osbuild_workdir }}"
+    state: directory
+    mode: '0755'
+
+- name: Create osbuild blueprint file
+  vars:
+    _public_key: "{{ lookup('file', composer_local_public_key_file) }}"
+  ansible.builtin.template:
+    src: "{{ composer_build_name }}/blueprint.j2"
+    dest: "{{ composer_osbuild_workdir }}/{{ composer_build_name }}-blueprint.toml"
+    mode: '0644'
+
+- name: Push blueprint file to osbuild
+  ansible.builtin.command:
+    cmd: "composer-cli blueprints push {{ composer_osbuild_workdir }}/{{ composer_build_name }}-blueprint.toml"
+  changed_when: result_push_blueprint.rc == 0
+  failed_when: result_push_blueprint.rc == 1
+  register: result_push_blueprint
+
+- name: Debug Push blueprint file to osbuild
+  ansible.builtin.debug:
+    msg: "{{ result_push_blueprint.stdout_lines }}"
+
+- name: Resolve dependencies for the respective blueprint
+  ansible.builtin.command:
+    cmd: "composer-cli blueprints depsolve {{ composer_build_name }}"
+  changed_when: result_push_blueprint.rc == 0
+  failed_when: result_push_blueprint.rc == 1
+  register: result_push_blueprint
+
+- name: Debug resolve dependencies for the respective blueprint
+  ansible.builtin.debug:
+    msg: "{{ result_push_blueprint.stdout_lines }}"

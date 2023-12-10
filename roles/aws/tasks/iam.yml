@@ -1,0 +1,32 @@
+---
+- name: Create VM import role and policy
+  vars:
+    trust_policy: "{{ lookup('ansible.builtin.template', 'vm_import_trust_policy.j2') }}"
+    role_policy: "{{ lookup('ansible.builtin.template', 'vm_import_role_policy.j2') }}"
+  block:
+    - name: Debug role policy file
+      ansible.builtin.debug:
+        var: role_policy
+
+    - name: Create import image policy
+      amazon.aws.iam_managed_policy:
+        region: "{{ aws_region }}"
+        policy_name: "{{ aws_iam_import_role_policy_name }}"
+        policy_description: VM import policy
+        policy: "{{ role_policy }}"
+        state: present
+      register: iam_policy_result
+
+    - name: Debug trust policy file
+      ansible.builtin.debug:
+        var: trust_policy
+
+    - name: Create import image role
+      amazon.aws.iam_role:
+        name: "{{ aws_iam_import_trust_policy_name }}"
+        region: "{{ aws_region }}"
+        assume_role_policy_document: "{{ trust_policy }}"
+        description: VM import role
+        managed_policies:
+          - "{{ iam_policy_result.policy.arn }}"
+      register: iam_role_result

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import os
 import configparser
@@ -31,19 +33,18 @@ def get_repo_data():
 
     return output_repo
 
-
 # Get arguments
-aap_version = sys.argv[1]
-rhel_version = sys.argv[2]
+composer_aap_version = sys.argv[1]
+composer_rhel_version = sys.argv[2]
 
-allowed_aap_versions = ["2.4"]
-allowed_rhel_versions = ["9"]
+allowed_composer_aap_versions = ["2.4"]
+allowed_composer_rhel_versions = ["9"]
 
-if aap_version not in allowed_aap_versions:
+if composer_aap_version not in allowed_composer_aap_versions:
     print("ERROR: AAP version not supported")
     sys.exit(1)
 
-if rhel_version not in allowed_rhel_versions:
+if composer_rhel_version not in allowed_composer_rhel_versions:
     print("ERROR: RHEL version not supported")
     sys.exit(1)
 

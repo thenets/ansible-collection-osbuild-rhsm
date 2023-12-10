@@ -1,0 +1,128 @@
+---
+- name: Create osbuild source directory
+  ansible.builtin.file:
+    path: "{{ composer_osbuild_workdir }}"
+    state: directory
+    mode: "0755"
+
+# Copy script and run it remotely to get stderror and stdout from script
+- name: Copy script to server
+  ansible.builtin.copy:
+    src: "files/retrieve_repo_data.py"
+    dest: "{{ composer_osbuild_workdir }}/retrieve_repo_data.py"
+    mode: "0755"
+  register: result_repo_data
+
+- name: Run script to retrieve the repo data
+  ansible.builtin.command:
+    cmd: "{{ composer_osbuild_workdir }}/retrieve_repo_data.py {{ composer_aap_version }} {{ composer_rhel_version }}"
+  changed_when: result_repo_data.rc == 0
+  failed_when: result_repo_data.rc == 1
+  register: result_repo_data
+
+- name: Debug Repo data
+  ansible.builtin.debug:
+    msg: "{{ (result_repo_data.stdout | from_json) }}"
+
+- name: Create directory /etc/osbuild-composer/repositories/
+  ansible.builtin.file:
+    path: /etc/osbuild-composer/repositories/
+    state: directory
+    mode: "0755"
+    recurse: true
+
+- name: Create AAP repo files
+  vars:
+    repo_data: "{{ (result_repo_data.stdout | from_json).repo }}"
+  block:
+    - name: Create AAP osbuild source file
+      ansible.builtin.template:
+        src: aap_source.j2
+        dest: "{{ composer_osbuild_workdir }}/aap_source.toml"
+        mode: "0644"
+
+    - name: Configure AAP repo
+      ansible.builtin.template:
+        src: aap_repo.j2
+        dest: "/etc/osbuild-composer/repositories/aap-{{ composer_aap_version }}-rhel-{{ composer_rhel_version }}.repo"
+        mode: "0644"
+
+- name: Create EPEL repo files
+  vars:
+    epel_gpg_key_url: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ composer_rhel_version }}"
+    epel_gpg_key: "{{ lookup('ansible.builtin.url', epel_gpg_key_url, follow_redirects='all', split_lines='False', force='True') }}"
+  block:
+    - name: Create epel osbuild source file
+      ansible.builtin.template:
+        src: epel_source.j2
+        dest: "{{ composer_osbuild_workdir }}/epel_source.toml"
+        mode: "0644"
+
+    - name: Configure EPEL repo
+      ansible.builtin.template:
+        src: epel_repo.j2
+        dest: "/etc/osbuild-composer/repositories/epel_repo.repo"
+        mode: "0644"
+
+- name: Config container registry
+  block:
+    - name: Create dir /etc/osbuild-worker/
+      ansible.builtin.file:
+        path: /etc/osbuild-worker/
+        state: directory
+        mode: "0755"
+
+    - name: Create /etc/osbuild-worker/osbuild-worker.toml
+      ansible.builtin.template:
+        src: worker.j2
+        dest: /etc/osbuild-worker/osbuild-worker.toml
+        mode: "0644"
+
+    - name: Login to the Red Hat registry with Podman
+      containers.podman.podman_login:
+        username: "{{ podman_username }}"
+        password: "{{ podman_password }}"
+        registry: registry.redhat.io
+        authfile: "{{ composer_podman_auth_file_location }}"
+      register: result_podman_login
+
+- name: Remove AAP source (ignore errors)
+  ansible.builtin.command:
+    cmd: "composer-cli sources delete aap-{{ composer_aap_version }}-rhel-{{ composer_rhel_version }}"
+  changed_when: result_remove_aap_source.rc == 0
+  failed_when: result_remove_aap_source.rc == 1
+  register: result_remove_aap_source
+  ignore_errors: true
+
+- name: Remove EPEL source (ignore errors)
+  ansible.builtin.command:
+    cmd: "composer-cli sources delete epel"
+  changed_when: result_remove_epel_source.rc == 0
+  failed_when: result_remove_epel_source.rc == 1
+  register: result_remove_epel_source
+  ignore_errors: true
+
+- name: Add AAP source
+  ansible.builtin.command:
+    cmd: "composer-cli sources add {{ composer_osbuild_workdir }}/aap_source.toml"
+  changed_when: result_add_aap_source.rc == 0
+  failed_when: result_add_aap_source.rc != 0
+  register: result_add_aap_source
+
+- name: Add EPEL source
+  ansible.builtin.command:
+    cmd: "composer-cli sources add {{ composer_osbuild_workdir }}/epel_source.toml"
+  changed_when: result_add_epel_source.rc == 0
+  failed_when: result_add_epel_source.rc != 0
+  register: result_add_epel_source
+  when: composer_add_epel_repo
+
+- name: Get list of sources
+  ansible.builtin.command:
+    cmd: "composer-cli sources list"
+  changed_when: false
+  register: result_list_sources
+
+- name: Debug list of sources
+  ansible.builtin.debug:
+    msg: "{{ result_list_sources.stdout_lines }}"

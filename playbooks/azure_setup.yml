@@ -1,0 +1,9 @@
+---
+- name: Setup Azure resources
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Import azure role
+      ansible.builtin.import_role:
+        name: azure
