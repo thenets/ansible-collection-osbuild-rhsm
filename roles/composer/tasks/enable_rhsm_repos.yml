@@ -5,5 +5,5 @@
 - name: Enable Ansible Automation Repository repository
   community.general.rhsm_repository:
     name:
-      - "{{ item}}"
-  loop: "{{ rhsm_repos }}"
+      - "{{ item }}"
+  loop: "{{ composer_rhsm_repos }}"

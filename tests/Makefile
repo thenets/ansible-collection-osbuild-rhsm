@@ -1,16 +1,18 @@
 # Local machine test targets
 # ===================================
-
 ## local test: run all tests
 local-play-all: play-host-setup play-build-azure
 
 ## local test: thenets.osbuild.host_setup
+local-play-host-setup: export ANSIBLE_CONFIG=./env-local/ansible.cfg
 local-play-host-setup:
 	ansible-playbook -vv thenets.osbuild.host_setup
 
 ## local test: thenets.osbuild.build_azure
+local-play-build-azure: export ANSIBLE_CONFIG=./env-local/ansible.cfg
 local-play-build-azure:
 	ansible-playbook -vv thenets.osbuild.build_azure
+
 
 # In-container tests
 # ===================================
@@ -23,6 +25,7 @@ container-test: _check-rhsm-credentials _check-inventory-file
 	@echo export RHSM_USERNAME=$(RHSM_USERNAME) >> /tmp/rhsm-credentials
 	@echo export RHSM_PASSWORD=$(RHSM_PASSWORD) >> /tmp/rhsm-credentials
 	podman build \
+		--ignorefile ./env-container/.containerignore \
 		-t $(IMAGE_TAG) \
 		-v /tmp/rhsm-credentials:/opt/rhsm-credentials:ro,z \
 		-f container/Containerfile \

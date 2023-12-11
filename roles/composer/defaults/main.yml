@@ -8,3 +8,8 @@ composer_aap_version: "2.4"
 composer_rhel_version: "9"
 
 composer_run_step_create_blueprint: true
+composer_run_step_enable_rhsm_repos: true
+composer_run_step_setup_osbuild: true
+
+composer_rhsm_repos:
+  - "ansible-automation-platform-2.4-for-rhel-9-x86_64-rpms"
