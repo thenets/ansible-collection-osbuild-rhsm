@@ -1,3 +1,12 @@
 ---
-host_setup_aap_version: "2.4"
-host_setup_rhel_version: "9"
+# Required variables
+local_container_registry_auth_file: "{{ playbook_dir }}/secrets/container-authfile.json"
+rhsm_repos:
+  - "ansible-automation-platform-2.4-for-rhel-9-x86_64-rpms"
+
+# Optional variables
+host_setup_run_step_install_packages_osbuild: true
+host_setup_run_step_install_packages_container: true
+host_setup_run_step_install_packages_hypervisor: true
+host_setup_run_step_enable_rhsm_repos: true
+host_setup_run_step_setup_osbuild: true

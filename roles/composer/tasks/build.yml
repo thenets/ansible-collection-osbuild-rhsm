@@ -11,3 +11,15 @@
 - name: Debug build
   ansible.builtin.debug:
     msg: "{{ result_create_build.stdout_lines }}"
+
+# Loop: Wait for build to finish
+- name: "block: Wait for build to finish"
+  vars:
+    _compose_build_id: "{{ result_create_build.stdout_lines[0].split(' ')[1] }}"
+  block:
+    - name: "Check if build is finished : {{ _compose_build_id }}"
+      vars:
+        time_seconds: "{{ 10 * 60 }}"
+      ansible.builtin.script:
+        cmd: "{{ role_path }}/files/wait_until_build_is_finished.py {{ _compose_build_id }} {{ time_seconds }}"
+        executable: python3

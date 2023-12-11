@@ -1,0 +1,36 @@
+# Install the dependencies to run osbuild-composer
+#
+# - qemu-kvm/libvirt:
+#     required to run the build in a virtual machine
+---
+
+# Based on https://access.redhat.com/documentation/pt-br/red_hat_enterprise_linux/9/html/configuring_and_managing_virtualization/assembly_enabling-virtualization-in-rhel-9_configuring-and-managing-virtualization
+- name: Install virtualization packages
+  ansible.builtin.dnf:
+    name:
+      - qemu-kvm
+      - libvirt
+      - virt-install
+      - virt-viewer
+    state: present
+
+- name: Enable libvirt service
+  loop:
+    - virtqemud
+    - libvirtd
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+
+- name: Validate host virtualization capabilities
+  ansible.builtin.command:
+    cmd: "virt-host-validate"
+  register: result_virt_host_validate
+
+- name: "[debug] virt-host-validate"
+  ansible.builtin.debug:
+    msg: "{{ result_virt_host_validate.stdout_lines }}"
+
+
+

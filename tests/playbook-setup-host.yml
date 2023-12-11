@@ -1,0 +1,12 @@
+---
+
+- hosts: rhel-dev
+  gather_facts: false
+  vars:
+    run_step_install_packages_osbuild: true
+    run_step_install_packages_container: true
+    run_step_install_packages_hypervisor: true
+    run_step_enable_rhsm_repos: true
+    run_step_setup_osbuild: true
+  roles:
+    - "osbuild-rhsm"

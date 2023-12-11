@@ -1,0 +1,73 @@
+---
+
+- name: "debug: _rhsm_repo"
+  debug:
+    msg: "Setting up the '{{ _rhsm_repo }}' RHSM repo"
+
+- name: "Retrieve the repo data"
+  ansible.builtin.script:
+    cmd: "{{ role_path }}/files/retrieve_repo_data.py {{ _rhsm_repo }}"
+    executable: python3
+  register: result_repo_data
+
+- name: "[debug] Repo data"
+  ansible.builtin.debug:
+    msg: "{{ (result_repo_data.stdout | from_json) }}"
+
+- name: "Create osbuild source directory"
+  ansible.builtin.file:
+    path: "{{ composer_osbuild_workdir }}"
+    state: directory
+    mode: '0755'
+
+- name: "block: create config files"
+  vars:
+    repo_data: "{{ (result_repo_data.stdout | from_json).repo }}"
+  block:
+    - name: "Create osbuild source file"
+      ansible.builtin.copy:
+        content: |
+          id = "{{ _rhsm_repo }}"
+          name = "{{ repo_data.name }}"
+          type = "yum-baseurl"
+          url = "{{ repo_data.baseurl }}"
+          check_gpg = true
+          check_ssl = true
+          rhsm = true
+
+          {% set gpgkeys = ([''] + (repo_data.gpgkey | split('-----BEGIN'))[1:3]) | join(',-----BEGIN') | trim | split(',') %}
+          gpgkeys=[
+          {% for key in gpgkeys[1:2] %}
+          '''{{ key }}'''
+          {%- if not loop.last %},
+          {% endif %}
+          {% endfor %}
+          ]
+        dest: "{{ composer_osbuild_workdir }}/source.toml"
+        mode: '0644'
+
+    # TODO add source to osbuild-composer
+    #      create /etc/osbuild-composer/repositories/aap-2.4-rhel-9.repo
+    - name: Create directory /etc/osbuild-composer/repositories/
+      ansible.builtin.file:
+        path: /etc/osbuild-composer/repositories/
+        state: directory
+        mode: '0755'
+        recurse: true
+
+    - name: "Define official repository overrides"
+      ansible.builtin.copy:
+        content: |
+          {% set gpgkeys = ([''] + (repo_data.gpgkey | split('-----BEGIN'))[1:3]) | join(',-----BEGIN') | trim | split(',') %}
+          {
+            "x86_64": [
+                {
+                    "name": "{{ _rhsm_repo }}",
+                    "metalink": "{{ repo_data.baseurl }}",
+                    "gpgkey": {{ gpgkeys[1] | to_json }},
+                    "check_gpg": true
+                }
+            ]
+          }
+        dest: "/etc/osbuild-composer/repositories/{{ _rhsm_repo }}.repo"
+        mode: '0644'

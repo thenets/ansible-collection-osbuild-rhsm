@@ -1,10 +1,20 @@
 ---
-- name: Enable RHSM
-  ansible.builtin.import_tasks: enable_rhsm_repos.yml
-  tags:
-    - enable_repos
+# tasks file for osbuild-rhsm
 
-- name: Install Dependencies
-  ansible.builtin.import_tasks: install_dependencies.yml
+# Install dependencies
+# --------------------
+- name: "[include task] ./tasks/install_deps_container.yml"
+  when: host_setup_run_step_install_packages_container
+  include_tasks: ./tasks/install_deps_container.yml
+  tags:
+    - install_dependencies
+- name: "[include task] ./tasks/install_deps_hypervisor.yml"
+  when: host_setup_run_step_install_packages_hypervisor
+  tags:
+    - install_dependencies
+  include_tasks: ./tasks/install_deps_hypervisor.yml
+- name: "[include task] ./tasks/install_deps_osbuild.yml"
+  when: host_setup_run_step_install_packages_osbuild
+  include_tasks: ./tasks/install_deps_osbuild.yml
   tags:
     - install_dependencies
