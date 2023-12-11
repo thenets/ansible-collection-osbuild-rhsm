@@ -3,15 +3,6 @@
 # Input validation
 # ----------------
 
-# TODO: this may be a bad idea. It is not that uncommon to have multiple private registries
-#       to be authenticated during a build process. An `authfile.json` would be more flexible
-#       on this regard.
-- name: Assert that required variables are set
-  ansible.builtin.assert:
-    that:
-      - podman_username is defined
-      - podman_password is defined
-
 # Subscription Manager
 # --------------------
 # All RHSM repos required by the "composer-cli" blueprint must be enabled
@@ -33,6 +24,7 @@
     loop_var: _rhsm_repo
 
 - name: "block: config container registry"
+  when: composer_support_container
   block:
     - name: Create dir /etc/osbuild-worker/
       ansible.builtin.file:
@@ -55,11 +47,13 @@
         mode: '0644'
 
     - name: Test authentication to registry.redhat.io
+      when: composer_support_container
       ansible.builtin.command:
         cmd: "podman login --authfile /etc/osbuild-worker/containers-auth.json registry.redhat.io"
       register: result_podman_login
 
     - name: "[debug] podman login"
+      when: composer_support_container
       ansible.builtin.debug:
         msg: "{{ result_podman_login.stdout_lines }}"
 

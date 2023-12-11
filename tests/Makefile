@@ -17,17 +17,23 @@ local-play-build-azure:
 # In-container tests
 # ===================================
 CONTAINER_SECRETS_DIR=/tmp/osbuild-container-secrets/
-IMAGE_TAG_UBI=docker.io/redhat/ubi9:latest
+IMAGE_TAG=docker.io/redhat/ubi9:latest
 RHSM_USERNAME ?= ""
 RHSM_PASSWORD ?= ""
 ## in-container tests, requires RHSM_USERNAME and RHSM_PASSWORD
-container-test: _check-rhsm-credentials _check-container-inventory-file _container_secrets_vars
-	podman run -it --rm \
-		--workdir /root/.ansible/collections/ansible_collections/thenets/osbuild/tests/env-container \
-		-v ../:/root/.ansible/collections/ansible_collections/thenets/osbuild:ro,z \
-		-v /tmp/rhsm-credentials:/opt/rhsm-credentials:ro,z \
-		$(IMAGE_TAG_UBI)
+container-test: _check-rhsm-credentials _check-container-inventory-file _container_image_build _container_secrets_vars
+	docker exec -it osbuild-test \
+		/bin/bash
 
+_container_image_build:
+	docker rm -f osbuild-test || true
+	docker run -it -d --rm --name osbuild-test \
+		--privileged \
+		--workdir /root/.ansible/collections/ansible_collections/thenets/osbuild/tests/env-container \
+		-v $$(cd ./../ && pwd):/root/.ansible/collections/ansible_collections/thenets/osbuild:ro,z \
+		-v /tmp/rhsm-credentials:/opt/rhsm-credentials:ro,z \
+		$(IMAGE_TAG) /sbin/init
+#docker build -t $(IMAGE_TAG) -f ./env-container/Containerfile ./env-container
 
 _container_secrets_vars:
 # - RHSM credentials

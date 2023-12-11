@@ -54,7 +54,7 @@ h_run() {
 
 function install_main_packages() {
     log_title "Installing dnf dependencies"
-    h_run "dnf install -y ncurses python3-pip"
+    h_run "dnf install -y ncurses python3-pip jq openssh"
 
     log_title "Installing Ansible and Ansible Collections"
     h_run "pip3 install ansible"
@@ -94,14 +94,45 @@ function _rhsm_register() {
     _disable_container_check
 
     log_info "Registering to RHSM"
-    h_run "subscription-manager register --auto-attach --username $RHSM_USERNAME --password $RHSM_PASSWORD"
+    subscription-manager register --auto-attach --username $RHSM_USERNAME --password $RHSM_PASSWORD
 }
 
 function _rhsm_unregister() {
+    # TODO: remove this
+    return 0
+
     log_info "Unregister from RHSM"
     subscription-manager unregister
 }
 
+function start_systemd_services() {
+    set -e
+    function _start_systemd_services_sigterm() {
+        log_info "Caught SIGTERM signal, shutting down systemd"
+        PID_SYSTEMD=$(pgrep systemd)
+        if [ -z "$PID_SYSTEMD" ]; then
+            log_error "Systemd not found"
+            exit 1
+        fi
+        h_run "kill -TERM $PID_SYSTEMD"
+    }
+    trap _start_systemd_services_sigterm SIGTERM
+
+    log_title "Setup systemd"
+    log_info "Install osbuild packages"
+    h_run "dnf install -y osbuild-composer composer-cli"
+
+    log_info "Creating systemd config files"
+    h_run "cp ./units/* /etc/systemd/system/"
+
+    log_info "Enabling systemd services"
+    h_run "systemctl daemon-reload"
+    h_run "systemctl enable --now \
+        osbuild-composer.socket \
+        osbuild-composer-proxy.socket \
+        osbuild-composer-journal.service \
+        osbuild-composer-loopback.service"
+}
 
 # Main
 # =========
@@ -129,11 +160,9 @@ function main() {
 
         _rhsm_register
 
-        # Enable repo and copy redhat.repo
-        subscription-manager repos --enable=ansible-automation-platform-2.4-for-rhel-9-x86_64-rpms
+        start_systemd_services
 
-        # TODO: maybe remove this
-        # cp /etc/yum.repos.d/redhat.repo /tmp/redhat.repo
+        ./test-runner.sh
 
         _rhsm_unregister
     }
@@ -144,10 +173,4 @@ function main() {
     log_success "Tests completed successfully"
 }
 
-# main
-
-set -ex
-ansible-playbook -e=@secrets/vars.yml -vv \
-    thenets.osbuild.host_setup
-ansible-playbook -e=@secrets/vars.yml -vv \
-    thenets.osbuild.build_azure
+main
