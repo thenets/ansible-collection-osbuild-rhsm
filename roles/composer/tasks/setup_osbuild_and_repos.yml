@@ -9,9 +9,9 @@
 
 - name: Run script to retrieve the repo data
   ansible.builtin.command:
-    cmd: "{{ composer_osbuild_workdir }}/retrieve_repo_data.py {{ composer_aap_version }} {{ composer_rhel_version }}"
-  changed_when: result_repo_data.rc == 0
-  failed_when: result_repo_data.rc == 1
+    cmd: "{{ composer_osbuild_workdir }}/retrieve_repo_data.py {{ rhsm_repo }}"
+  changed_when: false
+  failed_when: result_repo_data.rc != 0
   register: result_repo_data
 
 - name: Debug Repo data
