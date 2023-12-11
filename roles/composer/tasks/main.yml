@@ -14,28 +14,87 @@
 
 # Subscription Manager
 # --------------------
-- name: "[include task] ./tasks/enable_rhsm_repos.yml"
-  when: composer_run_step_enable_rhsm_repos
-  include_tasks: ./tasks/enable_rhsm_repos.yml
-  tags:
-    - enable_repos
+# All RHSM repos required by the "composer-cli" blueprint must be enabled
+# on the host machine.
+- name: Enable Ansible Automation Repository repository
+  community.general.rhsm_repository:
+    name:
+      - "{{ item }}"
+  loop: "{{ composer_rhsm_repos }}"
+
 
 # Setup osbuild config files and repos
 # ------------------------------------
-- name: "[include task] ./tasks/setup_osbuild_and_repos.yml"
-  when: composer_run_step_setup_osbuild
-  include_tasks: ./tasks/setup_osbuild_and_repos.yml
-  tags:
-    - setup_osbuild
+- name: "include: for each in rhsm_repos, _each_osbuild_rhsm_repo_setup.yml"
+  ansible.builtin.include_tasks:
+    file: _each_osbuild_rhsm_repo_setup.yml
+  loop: "{{ composer_rhsm_repos }}"
+  loop_control:
+    loop_var: _rhsm_repo
+
+- name: "block: config container registry"
+  block:
+    - name: Create dir /etc/osbuild-worker/
+      ansible.builtin.file:
+        path: /etc/osbuild-worker/
+        state: directory
+        mode: '0755'
+
+    - name: Create /etc/osbuild-worker/osbuild-worker.toml
+      ansible.builtin.copy:
+        content: |
+          [containers]
+          auth_file_path = "/etc/osbuild-worker/containers-auth.json"
+        dest: /etc/osbuild-worker/osbuild-worker.toml
+        mode: '0644'
+
+    - name: Copy container registry config file
+      ansible.builtin.copy:
+        src: "{{ composer_local_container_registry_auth_file }}"
+        dest: /etc/osbuild-worker/containers-auth.json
+        mode: '0644'
+
+    - name: Test authentication to registry.redhat.io
+      ansible.builtin.command:
+        cmd: "podman login --authfile /etc/osbuild-worker/containers-auth.json registry.redhat.io"
+      register: result_podman_login
+
+    - name: "[debug] podman login"
+      ansible.builtin.debug:
+        msg: "{{ result_podman_login.stdout_lines }}"
+
+
+- name: "block: config osbuild source"
+  block:
+    - name: "Remove osbuild source (ignore errors)"
+      ansible.builtin.command:
+        cmd: "composer-cli sources remove {{ _rhsm_repo }}"
+      register: result_remove_source
+      ignore_errors: true
+
+    - name: "Add osbuild source"
+      ansible.builtin.command:
+        cmd: "composer-cli sources add {{ composer_osbuild_workdir }}/source.toml"
+      register: result_add_source
+
+    - name: "Get list of sources"
+      ansible.builtin.command:
+        cmd: "composer-cli sources list"
+      register: result_list_sources
+
+    - name: "[debug] List of sources"
+      ansible.builtin.debug:
+        msg: "{{ result_list_sources.stdout_lines }}"
+
 
 # Blueprint and image creation
 # ----------------------------
 - name: Create the osbuild blueprint
   when: composer_run_step_create_blueprint
-  ansible.builtin.import_tasks: blueprint.yml
+  ansible.builtin.import_tasks: build-setup-blueprint.yml
 
 - name: Setup Azure's credentials
-  ansible.builtin.import_tasks: azure.yml
+  ansible.builtin.import_tasks: build-setup-azure-config.yml
 
 - name: Run the composer (build the image)
   ansible.builtin.import_tasks: build.yml
