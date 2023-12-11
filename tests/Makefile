@@ -16,26 +16,28 @@ local-play-build-azure:
 
 # In-container tests
 # ===================================
-IMAGE_TAG=thenets/osbuild-rhsm:test
+CONTAINER_SECRETS_DIR=/tmp/osbuild-container-secrets/
+IMAGE_TAG_UBI=docker.io/redhat/ubi9:latest
 RHSM_USERNAME ?= ""
 RHSM_PASSWORD ?= ""
 ## in-container tests, requires RHSM_USERNAME and RHSM_PASSWORD
-container-test: _check-rhsm-credentials _check-inventory-file
+container-test: _check-rhsm-credentials _check-container-inventory-file _container_secrets_vars
+	podman run -it --rm \
+		--workdir /root/.ansible/collections/ansible_collections/thenets/osbuild/tests/env-container \
+		-v ../:/root/.ansible/collections/ansible_collections/thenets/osbuild:ro,z \
+		-v /tmp/rhsm-credentials:/opt/rhsm-credentials:ro,z \
+		$(IMAGE_TAG_UBI)
+
+
+_container_secrets_vars:
+# - RHSM credentials
 	@echo '#!/bin/bash' > /tmp/rhsm-credentials
 	@echo export RHSM_USERNAME=$(RHSM_USERNAME) >> /tmp/rhsm-credentials
 	@echo export RHSM_PASSWORD=$(RHSM_PASSWORD) >> /tmp/rhsm-credentials
-	podman build \
-		--ignorefile ./env-container/.containerignore \
-		-t $(IMAGE_TAG) \
-		-v /tmp/rhsm-credentials:/opt/rhsm-credentials:ro,z \
-		-f container/Containerfile \
-		--no-cache \
-		./../
-	rm -f /tmp/rhsm-credentials
-
-## REMOVE_ME DEBUG
-container-test-shell:
-	podman run -it --rm $(IMAGE_TAG) /bin/bash
+# - Azure credentials
+	@echo '#!/bin/bash' > /tmp/rhsm-credentials
+	@echo export RHSM_USERNAME=$(RHSM_USERNAME) >> /tmp/rhsm-credentials
+	@echo export RHSM_PASSWORD=$(RHSM_PASSWORD) >> /tmp/rhsm-credentials
 
 _check-rhsm-credentials:
 ifeq ($(RHSM_USERNAME),"")
@@ -45,9 +47,9 @@ ifeq ($(RHSM_PASSWORD),"")
 	$(error RHSM_PASSWORD is not set)
 endif
 
-_check-inventory-file:
-ifeq (,$(wildcard ./inventory))
-	$(error ./inventory file does not exist)
+_check-container-inventory-file:
+ifeq (,$(wildcard ./env-local/inventory))
+	$(error ./env-local/inventory file does not exist)
 endif
 
 

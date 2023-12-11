@@ -10,6 +10,14 @@ def get_hostname():
 
 def get_repo_data(repo_section_name):
     repo_file = '/etc/yum.repos.d/redhat.repo'
+    # For containers, search for for /tmp/redhat.repo
+    if not os.path.isfile(repo_file):
+        repo_file = '/tmp/redhat.repo'
+
+    if not os.path.isfile(repo_file):
+        print("ERROR: Could not find Red Hat repo file")
+        print(f"ERROR: Not found: {repo_file}")
+        sys.exit(1)
 
     try:
         config = configparser.ConfigParser()
