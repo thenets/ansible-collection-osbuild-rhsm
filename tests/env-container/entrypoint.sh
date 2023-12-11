@@ -123,6 +123,7 @@ function start_systemd_services() {
     h_run "dnf install -y osbuild-composer composer-cli"
 
     log_info "Creating systemd config files"
+    h_run "mkdir -p /builds/"
     h_run "cp ./units/* /etc/systemd/system/"
 
     log_info "Enabling systemd services"
