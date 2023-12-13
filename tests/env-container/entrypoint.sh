@@ -94,7 +94,7 @@ function _rhsm_register() {
     _disable_container_check
 
     log_info "Registering to RHSM"
-    subscription-manager register --auto-attach --username $RHSM_USERNAME --password $RHSM_PASSWORD
+    subscription-manager register --auto-attach --username $RHSM_USERNAME --password $RHSM_PASSWORD || true
 }
 
 function _rhsm_unregister() {
@@ -106,6 +106,7 @@ function _rhsm_unregister() {
 }
 
 function start_systemd_services() {
+    # Based on https://github.com/osbuild/osbuild-composer-container
     set -e
     function _start_systemd_services_sigterm() {
         log_info "Caught SIGTERM signal, shutting down systemd"
