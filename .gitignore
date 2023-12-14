@@ -2,3 +2,8 @@
 secrets/
 inventory
 env/
+venv/
+.ruff_cache/
+.osbuild/
+.vagrant/
+cache/

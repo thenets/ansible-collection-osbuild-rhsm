@@ -6,4 +6,4 @@
   tasks:
     - name: Run setup hosts role
       ansible.builtin.import_role:
-        name: thenets.osbuild.host_setup
+        name: host_setup

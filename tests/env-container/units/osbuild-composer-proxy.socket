@@ -1,0 +1,5 @@
+[Socket]
+ListenStream=/builds/weldr-api.socket
+
+[Install]
+WantedBy=sockets.target

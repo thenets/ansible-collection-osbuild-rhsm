@@ -3,7 +3,7 @@
 composer_local_public_key_file: ~/.ssh/id_rsa.pub
 
 # Container
-composer_local_container_enable: true
+composer_support_container: true
 composer_local_container_registry_auth_file: ~/.docker/config.json
 
 # Build
