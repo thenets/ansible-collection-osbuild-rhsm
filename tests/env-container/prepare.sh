@@ -15,17 +15,29 @@ mkdir -p "${TMP}"
 # container dies, it will take this mount with itself.
 mount -t tmpfs tmpfs "${TMP}"
 
-# Copy osbuild to the new mountpoint.
-cp /usr/bin/osbuild "${TMP}/osbuild"
+BINARIES=(
+    /usr/bin/osbuild
+    /usr/bin/composer-cli
+    /usr/libexec/osbuild-composer/osbuild-worker
+    /usr/libexec/osbuild-composer/osbuild-composer
+)
 
-# Label it as `install_exec_t`. We need this in order to get `install_t` that has `CAP_MAC_ADMIN` for creating SELinux
-# labels unknown to the host.
-#
-# Note that the transition to `install_t` must happen at this point. Osbuild stages run in `bwrap` that creates
-# a nosuid, no_new_privs environment. In such an environment, we cannot transition from `unconfined_t` to `install_t`,
-# because we would get more privileges.
-chcon system_u:object_r:install_exec_t:s0 "${TMP}/osbuild"
+for ORIGINAL_BINARY_PATH in "${BINARIES[@]}"; do
+    BINARY_FILE_NAME=$(basename "${ORIGINAL_BINARY_PATH}")
+    NEW_BINARY_PATH="${TMP}/${BINARY_FILE_NAME}"
 
-# "Copy" back the relabeled osbuild to its right place. We obviously cannot copy it, so let's bind-mount it instead.
-# Once again, we don't care about clean-up, this is MS_SHARED.
-mount -o bind "${TMP}/osbuild" /usr/bin/osbuild
+    # Copy the binary to the new mountpoint.
+    cp "${ORIGINAL_BINARY_PATH}" "${NEW_BINARY_PATH}"
+
+    # Label it as `install_exec_t`. We need this in order to get `install_t` that has `CAP_MAC_ADMIN` for creating SELinux
+    # labels unknown to the host.
+    #
+    # Note that the transition to `install_t` must happen at this point. Osbuild stages run in `bwrap` that creates
+    # a nosuid, no_new_privs environment. In such an environment, we cannot transition from `unconfined_t` to `install_t`,
+    # because we would get more privileges.
+    chcon system_u:object_r:install_exec_t:s0 "${NEW_BINARY_PATH}"
+
+    # "Copy" back the relabeled binary to its right place. We obviously cannot copy it, so let's bind-mount it instead.
+    # Once again, we don't care about clean-up, this is MS_SHARED.
+    mount -o bind "${NEW_BINARY_PATH}" "${ORIGINAL_BINARY_PATH}"
+done

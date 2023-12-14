@@ -29,8 +29,10 @@ container-test: _check-rhsm-credentials _check-container-inventory-file _contain
 _container_image_build:
 	mkdir -p /tmp/selinux-osbuild
 	$(_CONTAINER_RUNTIME) volume create --ignore osbuild-cache
+	$(_CONTAINER_RUNTIME) volume create --ignore osbuild-var-tmp
 	$(_CONTAINER_RUNTIME) run -it -d --rm --replace --name osbuild-test \
 		-v osbuild-cache:/cache:rw,z \
+		-v osbuild-var-tmp:/var/tmp:rw,z \
 		--security-opt label=type:unconfined_t \
 		--privileged \
 		\
