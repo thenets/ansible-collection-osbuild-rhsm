@@ -53,6 +53,10 @@ h_run() {
 # Create an `osbuild` compose build using a RHSM repo.
 
 function install_main_packages() {
+    log_title "Enable COPR repo for osbuild"
+    h_run "dnf copr enable -y @osbuild/osbuild"
+    h_run "dnf copr enable -y @osbuild/osbuild-composer rhel-9-x86_64"
+
     log_title "Installing dnf dependencies"
     h_run "dnf install -y ncurses python3-pip jq openssh"
 
@@ -127,9 +131,13 @@ function start_systemd_services() {
     h_run "mkdir -p /builds/"
     h_run "cp ./units/* /etc/systemd/system/"
 
+    log_info "Run prepare.sh"
+    h_run "chmod +x ./prepare.sh"
+    h_run "./prepare.sh"
+
     log_info "Enabling systemd services"
     h_run "systemctl daemon-reload"
-    h_run "systemctl enable --now \
+    h_run "systemctl enable \
         osbuild-composer.socket \
         osbuild-composer-proxy.socket \
         osbuild-composer-journal.service \

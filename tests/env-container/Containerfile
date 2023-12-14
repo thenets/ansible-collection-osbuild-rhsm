@@ -1,4 +1,0 @@
-# Based on https://github.com/osbuild/osbuild-composer-container
-
-FROM docker.io/redhat/ubi9:latest
-
