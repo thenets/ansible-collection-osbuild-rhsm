@@ -59,6 +59,8 @@
 
 
 - name: "block: config osbuild source"
+  # TODO review the condition to properly remove all repo sources
+  when: _rhsm_repo is defined
   block:
     - name: "Remove osbuild source (ignore errors)"
       ansible.builtin.command:
