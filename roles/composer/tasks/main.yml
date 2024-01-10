@@ -89,8 +89,11 @@
   when: composer_run_step_create_blueprint
   ansible.builtin.import_tasks: build-setup-blueprint.yml
 
-- name: Setup Azure's credentials
-  ansible.builtin.import_tasks: build-setup-azure-config.yml
+# - name: Setup Azure's credentials
+#   ansible.builtin.import_tasks: build-setup-cloud-azure.yml
+
+- name: Setup GCP's credentials
+  ansible.builtin.import_tasks: build-setup-cloud-gcp.yml
 
 - name: Run the composer (build the image)
   ansible.builtin.import_tasks: build.yml

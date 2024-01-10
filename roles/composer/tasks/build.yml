@@ -1,9 +1,20 @@
 ---
+# ORIGINAL content from the Azure's build
+#
+# - name: Create a new build
+#   vars:
+#     _timestamp: "{{ lookup('pipe', 'date +%s') }}"
+#   ansible.builtin.command:
+#     cmd: "composer-cli compose start {{ composer_build_name }} vhd {{ composer_build_name }}-{{ _timestamp }} {{ composer_osbuild_workdir }}/config_azure.toml"
+#   changed_when: result_create_build.rc == 0
+#   failed_when: result_create_build.rc == 1
+#   register: result_create_build
+
 - name: Create a new build
   vars:
     _timestamp: "{{ lookup('pipe', 'date +%s') }}"
   ansible.builtin.command:
-    cmd: "composer-cli compose start {{ composer_build_name }} vhd {{ composer_build_name }}-{{ _timestamp }} {{ composer_osbuild_workdir }}/azure.toml"
+    cmd: "composer-cli compose start {{ composer_build_name }} gce {{ composer_build_name }}-{{ _timestamp }} {{ composer_osbuild_workdir }}/config_gcp.toml"
   changed_when: result_create_build.rc == 0
   failed_when: result_create_build.rc == 1
   register: result_create_build

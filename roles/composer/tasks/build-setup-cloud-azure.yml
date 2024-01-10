@@ -1,0 +1,6 @@
+---
+- name: Create config_azure.toml file
+  ansible.builtin.template:
+    src: config_azure.j2
+    dest: "{{ composer_osbuild_workdir }}/config_azure.toml"
+    mode: '0644'
