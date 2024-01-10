@@ -21,6 +21,7 @@ composer_run_step_setup_osbuild: true
 # RHSM
 composer_rhsm_repos:
   - "ansible-automation-platform-2.4-for-rhel-9-x86_64-rpms"
+  # TODO enable arm64
 
 # Debug
 composer_debug: false
