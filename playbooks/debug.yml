@@ -1,0 +1,69 @@
+---
+
+- name: DEBUG gcp VM image
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: build
+      vars:
+        _workdir: /root/workdir/
+        _local_workdir: /tmp/osbuild
+        _build_name: "aap-installer-1704995744"
+        _build_uuid: "8eaf4018-6712-4fea-a594-3b79e05ecbdd"
+        _build_arch: "x86_64"
+
+        # gcp_credentials_json_file_path
+        #gcp_bucket: aapinstaller-vm-images
+        #gcp_region: us
+        #gcp_object: test-image
+
+      block:
+          # - name: Extract the build image
+          #   ansible.builtin.shell:
+          #     chdir: "{{ _workdir }}"
+          #     cmd: |
+          #       composer-cli compose image {{ _build_uuid }} --filename {{ _workdir }}/{{ _build_name }}.tar.gz
+
+          - name: Copy the service_account_file
+            ansible.builtin.copy:
+              src: "{{ gcp_credentials_json_file_path }}"
+              dest: "{{ _workdir }}/service_account_file.json"
+              mode: 0600
+
+
+          # ------------
+
+          - name: Get GCP project name from the service account JSON
+            ansible.builtin.set_fact:
+              gcp_project: "{{ (lookup('file', gcp_credentials_json_file_path) | from_json).project_id }}"
+
+          - name: gcloud auth block
+            environment:
+              GOOGLE_APPLICATION_CREDENTIALS: "{{ gcp_credentials_json_file_path }}"
+              CLOUDSDK_CORE_PROJECT: "{{ gcp_project }}"
+            block:
+
+              - name: Activate the service account
+                ansible.builtin.shell:
+                  cmd: |
+                    gcloud auth activate-service-account \
+                      --key-file={{ _workdir }}/service_account_file.json
+
+
+              # - name: Upload to the bucket
+              #   ansible.builtin.shell:
+              #     cmd: |
+              #       gcloud storage cp \
+              #         {{ _workdir }}/{{ _build_name }}.tar.gz \
+              #         gs://{{ gcp_bucket }}/{{ _build_name }}.tar.gz
+
+              - name: Build the image
+                ansible.builtin.shell:
+                  cmd: |
+                    gcloud compute images create {{ _build_name }}-{{ _build_arch | lower | replace("_", "-") }} \
+                      --source-uri=gs://{{ gcp_bucket }}/{{ _build_name }}.tar.gz \
+                      --guest-os-features="UEFI_COMPATIBLE,GVNIC,VIRTIO_SCSI_MULTIQUEUE,SEV_CAPABLE,SEV_SNP_CAPABLE" \
+                      --architecture {{ _build_arch | upper }} \
+                      --family rhel-9
+

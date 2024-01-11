@@ -18,6 +18,11 @@ local-play-build-gcp: export ANSIBLE_CONFIG=./env-local/ansible.cfg
 local-play-build-gcp:
 	ansible-playbook -vv thenets.osbuild.build_gcp
 
+## local debug
+local-play-build-debug: export ANSIBLE_CONFIG=./env-local/ansible.cfg
+local-play-build-debug:
+	ansible-playbook -vv thenets.osbuild.debug
+
 
 # In-container tests
 # ===================================
