@@ -21,10 +21,19 @@
     msg: "Unsupported platform: '{{ composer_platform }}'. Supported platforms: {{ _supported_platforms }}"
   when: composer_platform not in _supported_platforms
 
-- name: Set 'composer_local_output_dir' variable default value
-  set_fact:
-    composer_local_output_dir: "{{ playbook_dir }}/output"
-  when: composer_local_output_dir is not defined or composer_local_output_dir == ''
+- name: "block: if composer_local_output_dir is defined"
+  when: (composer_local_output_dir) != None
+  block:
+    - name: Check if 'composer_local_output_dir' is absolute path
+      connection: local
+      ansible.builtin.fail:
+        msg: "Variable 'composer_local_output_dir' must be an absolute path"
+      when:
+        - not (composer_local_output_dir | regex_search('^/'))
+
+    - name: Debug 'composer_local_output_dir'
+      ansible.builtin.debug:
+        msg: "{{ composer_local_output_dir }}"
 
 # Main variables
 # --------------------
