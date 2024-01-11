@@ -8,13 +8,16 @@
       - gcp_object is defined
       - gcp_credentials_json_file_path is defined
 
-# TODO fix this
-#
-# - name: Check if file exists
-#   ansible.builtin.stat:
-#     path: "{{ gcp_credentials_json_file_path }}"
-#   register: gcp_credentials_json_file_path_stat
-#   failed_when: false
+- name: Check if file exists
+  connection: local
+  ansible.builtin.stat:
+    path: "{{ gcp_credentials_json_file_path }}"
+  register: gcp_credentials_json_file_path_stat
+
+- name: Fail if GCP credentials file does not exist
+  ansible.builtin.fail:
+    msg: "File '{{ gcp_credentials_json_file_path }}' does not exist"
+  when: gcp_credentials_json_file_path_stat.stat.exists == false
 
 - name: Encode credentials file
   ansible.builtin.set_fact:
