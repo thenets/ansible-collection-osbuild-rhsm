@@ -1,4 +1,6 @@
 ---
+composer_is_production: false
+
 # VM pub key auth
 composer_local_public_key_file: ~/.ssh/id_rsa.pub
 

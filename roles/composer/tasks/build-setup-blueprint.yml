@@ -5,32 +5,33 @@
     state: directory
     mode: '0755'
 
-- name: Create osbuild pipeline file
+- name: Create osbuild blueprint file
   vars:
     _public_key: "{{ lookup('file', composer_local_public_key_file) }}"
   ansible.builtin.template:
-    src: pipeline.j2
-    dest: "{{ composer_osbuild_workdir }}/pipeline-{{ composer_build_name }}.toml"
+    src: blueprint.j2
+    dest: "{{ composer_osbuild_workdir }}/blueprint-{{ composer_build_name }}.toml"
     mode: '0644'
 
 - name: Push blueprint file to osbuild
   ansible.builtin.command:
-    cmd: "composer-cli blueprints push {{ composer_osbuild_workdir }}/pipeline-{{ composer_build_name }}.toml"
-  changed_when: result_push_pipeline.rc == 0
-  failed_when: result_push_pipeline.rc == 1
-  register: result_push_pipeline
+    cmd: "composer-cli blueprints push {{ composer_osbuild_workdir }}/blueprint-{{ composer_build_name }}.toml"
+  changed_when: result_push_blueprint.rc == 0
+  failed_when: result_push_blueprint.rc == 1
+  register: result_push_blueprint
 
 - name: Debug Push blueprint file to osbuild
   ansible.builtin.debug:
-    msg: "{{ result_push_pipeline.stdout_lines }}"
+    msg: "{{ result_push_blueprint.stdout_lines }}"
+  when: result_push_blueprint.rc != 0
 
 - name: Resolve dependencies for the respective blueprint
   ansible.builtin.command:
     cmd: "composer-cli blueprints depsolve {{ composer_build_name }}"
-  changed_when: result_push_pipeline.rc == 0
-  failed_when: result_push_pipeline.rc == 1
-  register: result_push_pipeline
+  changed_when: result_resolve_dependencies.rc == 0
+  failed_when: result_resolve_dependencies.rc == 1
+  register: result_resolve_dependencies
 
 - name: Debug resolve dependencies for the respective blueprint
   ansible.builtin.debug:
-    msg: "{{ result_push_pipeline.stdout_lines }}"
+    msg: "{{ result_resolve_dependencies.stdout_lines }}"

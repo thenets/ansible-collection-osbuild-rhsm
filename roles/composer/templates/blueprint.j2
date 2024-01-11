@@ -15,9 +15,12 @@ name = "WALinuxAgent"
 [customizations.kernel]
 append = ""
 
+{% if not _is_production %}
 [[customizations.sshkey]]
 user = "root"
 key = "{{ _public_key | trim }}"
+{% endif %}
+
 [customizations.timezone]
 [customizations.locale]
 [customizations.firewall]

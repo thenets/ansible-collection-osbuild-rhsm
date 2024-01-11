@@ -2,6 +2,10 @@
 
 # Input validation
 # ----------------
+- name: Set 'composer_is_production' as boolean
+  set_fact:
+    _is_production: "{{ composer_is_production | bool }}"
+
 
 # Subscription Manager
 # --------------------
