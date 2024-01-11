@@ -1,7 +1,7 @@
 # Local machine test targets
 # ===================================
 ## local test: run all tests
-local-play-all: play-host-setup play-build-azure
+local-play-all: play-host-setup
 
 ## local test: thenets.osbuild.host_setup
 local-play-host-setup: export ANSIBLE_CONFIG=./env-local/ansible.cfg
@@ -12,6 +12,11 @@ local-play-host-setup:
 local-play-build-azure: export ANSIBLE_CONFIG=./env-local/ansible.cfg
 local-play-build-azure:
 	ansible-playbook -vv thenets.osbuild.build_azure
+
+## local test: thenets.osbuild.build_gcp
+local-play-build-gcp: export ANSIBLE_CONFIG=./env-local/ansible.cfg
+local-play-build-gcp:
+	ansible-playbook -vv thenets.osbuild.build_gcp
 
 
 # In-container tests

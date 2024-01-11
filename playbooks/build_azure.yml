@@ -13,5 +13,7 @@
         fail_msg: "Azure variables are not set"
 
     - name: Import composer role
+      vars:
+        composer_platform: azure
       ansible.builtin.import_role:
         name: composer

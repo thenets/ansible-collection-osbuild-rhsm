@@ -1,10 +1,5 @@
 ---
 
-# Check vars exist:
-# gcp_bucket
-# gcp_region
-# gcp_object
-# gcp_credentials_json_file_path
 - name: Assert variables are defined
   ansible.builtin.assert:
     that:
@@ -26,8 +21,8 @@
     gcp_credentials_json_base64: "{{ lookup('file', gcp_credentials_json_file_path) | b64encode }}"
 
 
-- name: Create config_gcp.toml file
+- name: Create profile.toml
   ansible.builtin.template:
-    src: config_gcp.j2
-    dest: "{{ composer_osbuild_workdir }}/config_gcp.toml"
+    src: profile_gcp.j2
+    dest: "{{ composer_osbuild_workdir }}/profile.toml"
     mode: '0644'

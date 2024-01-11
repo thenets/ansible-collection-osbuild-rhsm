@@ -7,13 +7,9 @@
     _is_production: "{{ composer_is_production | default(false) | bool }}"
 
 - name: Assert variables were defined
-  vars:
-    _required_vars:
-      - composer_platform
-  ansible.builtin.fail:
-    msg: "Variable '{{ item }}' must be defined"
-  loop: "{{ _required_vars }}"
-  when: item not in vars
+  ansible.builtin.assert:
+    that:
+      - composer_platform is defined
 
 - name: Check 'composer_platform' is supported
   connection: local
@@ -120,6 +116,6 @@
 - name: Create the osbuild blueprint
   when: composer_run_step_create_blueprint
   ansible.builtin.import_tasks: build-setup-blueprint.yml
-
+- fail:
 - name: Run the composer (build the image)
   ansible.builtin.import_tasks: build.yml

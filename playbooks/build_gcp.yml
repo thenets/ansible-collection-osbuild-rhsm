@@ -1,0 +1,11 @@
+---
+- name: Build gcp VM image
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Import composer role
+      vars:
+        composer_platform: gcp
+      ansible.builtin.import_role:
+        name: composer
