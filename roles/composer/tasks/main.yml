@@ -4,7 +4,27 @@
 # ----------------
 - name: Set 'composer_is_production' as boolean
   set_fact:
-    _is_production: "{{ composer_is_production | bool }}"
+    _is_production: "{{ composer_is_production | default(false) | bool }}"
+
+- name: Assert variables were defined
+  vars:
+    _required_vars:
+      - composer_platform
+  ansible.builtin.fail:
+    msg: "Variable '{{ item }}' must be defined"
+  loop: "{{ _required_vars }}"
+  when: item not in vars
+
+- name: Check 'composer_platform' is supported
+  connection: local
+  vars:
+    _supported_platforms:
+      - gcp
+      - azure
+  ansible.builtin.fail:
+    msg: "Unsupported platform: '{{ composer_platform }}'. Supported platforms: {{ _supported_platforms }}"
+  when: composer_platform not in _supported_platforms
+
 
 
 # Subscription Manager
@@ -89,15 +109,17 @@
 
 # Blueprint and image creation
 # ----------------------------
+- name: Setup Azure
+  when: composer_platform == 'azure'
+  ansible.builtin.import_tasks: build-setup-cloud-azure.yml
+
+- name: Setup GCP
+  when: composer_platform == 'gcp'
+  ansible.builtin.import_tasks: build-setup-cloud-gcp.yml
+
 - name: Create the osbuild blueprint
   when: composer_run_step_create_blueprint
   ansible.builtin.import_tasks: build-setup-blueprint.yml
-
-# - name: Setup Azure's credentials
-#   ansible.builtin.import_tasks: build-setup-cloud-azure.yml
-
-- name: Setup GCP's credentials
-  ansible.builtin.import_tasks: build-setup-cloud-gcp.yml
 
 - name: Run the composer (build the image)
   ansible.builtin.import_tasks: build.yml
