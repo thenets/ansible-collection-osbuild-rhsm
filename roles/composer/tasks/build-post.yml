@@ -1,33 +1,15 @@
 ---
-- name: Create a new build
-  vars:
-    _timestamp: "{{ lookup('pipe', 'date +%s') }}"
-  ansible.builtin.command:
-    cmd: "composer-cli compose start {{ composer_build_name }} gce {{ _build_name }} {{ composer_osbuild_workdir }}/profile.toml"
-  changed_when: result_create_build.rc == 0
-  failed_when: result_create_build.rc == 1
-  register: result_create_build
 
-- name: Debug build
-  ansible.builtin.debug:
-    msg: "{{ result_create_build.stdout_lines }}"
-
-# Loop: Wait for build to finish
-- name: "block: Wait for build to finish"
-  vars:
-    _compose_build_id: "{{ result_create_build.stdout_lines[0].split(' ')[1] }}"
-  block:
-    - name: "Check if build is finished : {{ _compose_build_id }}"
-      vars:
-        time_seconds: "{{ 10 * 60 }}"
-      ansible.builtin.script:
-        cmd: "{{ role_path }}/files/wait_until_build_is_finished.py {{ _compose_build_id }} {{ time_seconds }}"
-        executable: python3
+- name: "Assert that the '_compose_build_id' variable is defined"
+  assert:
+    that:
+      - _compose_build_id is defined
+    fail_msg: "The '_compose_build_id' variable is not defined. Please make sure you defined it during the main build process."
 
 # ------------
 - name: "[block] Create the debug bundle"
   vars:
-    _debug_bundle_dir_remote: "{{ composer_osbuild_workdir }}/debug-bundle"
+    _debug_bundle_dir_remote: "{{ composer_osbuild_workdir }}/{{ _build_name }}"
     _debug_bundle_dir_local: "{{ composer_local_output_dir }}/{{ _build_name }}"
   block:
     - name: "Create the debug bundle directory"

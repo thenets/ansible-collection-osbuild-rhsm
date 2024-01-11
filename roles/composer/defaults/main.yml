@@ -3,6 +3,8 @@ composer_is_production: false
 composer_packages:
   - ansible-automation-platform-installer
 
+composer_build_timeout_seconds: 1200 # 20 minutes
+
 # Where the debug-bundle will be downloaded to
 # if empty, it will be "{{ playbook_dir }}/output/"
 composer_local_output_dir:

@@ -122,15 +122,11 @@
 # ----------------------------
 - name: Setup Azure
   when: composer_platform == 'azure'
-  ansible.builtin.import_tasks: build-setup-cloud-azure.yml
+  ansible.builtin.import_tasks: build-cloud-azure.yml
 
 - name: Setup GCP
   when: composer_platform == 'gcp'
-  ansible.builtin.import_tasks: build-setup-cloud-gcp.yml
+  ansible.builtin.import_tasks: build-cloud-gcp.yml
 
-- name: Create the osbuild blueprint
-  when: composer_run_step_create_blueprint
-  ansible.builtin.import_tasks: build-setup-blueprint.yml
-
-- name: Run the composer (build the image)
-  ansible.builtin.import_tasks: build.yml
+- name: Run post build steps
+  ansible.builtin.import_tasks: build-post.yml

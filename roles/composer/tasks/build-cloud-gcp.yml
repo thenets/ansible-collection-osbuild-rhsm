@@ -1,0 +1,73 @@
+---
+
+- name: Assert variables are defined
+  ansible.builtin.assert:
+    that:
+      - gcp_bucket is defined
+      - gcp_region is defined
+      - gcp_object is defined
+      - gcp_credentials_json_file_path is defined
+
+# ------------
+- name: "[block] setup"
+  block:
+    - name: Check if file exists
+      connection: local
+      ansible.builtin.stat:
+        path: "{{ gcp_credentials_json_file_path }}"
+      register: gcp_credentials_json_file_path_stat
+
+    - name: Fail if GCP credentials file does not exist
+      ansible.builtin.fail:
+        msg: "File '{{ gcp_credentials_json_file_path }}' does not exist"
+      when: gcp_credentials_json_file_path_stat.stat.exists == false
+
+    - name: Encode credentials file
+      ansible.builtin.set_fact:
+        gcp_credentials_json_base64: "{{ lookup('file', gcp_credentials_json_file_path) | b64encode }}"
+
+    - name: Create profile.toml
+      ansible.builtin.template:
+        src: profile_gcp.j2
+        dest: "{{ composer_osbuild_workdir }}/profile.toml"
+        mode: '0644'
+
+    - name: Append GCP packages to _packages_list
+      vars:
+        _gcp_packages_list: []
+      ansible.builtin.set_fact:
+        _packages_list: "{{ _packages_list + _gcp_packages_list }}"
+
+    - name: Create the osbuild blueprint
+      when: composer_run_step_create_blueprint
+      ansible.builtin.import_tasks: build-setup-blueprint.yml
+
+# ------------
+- name: "[block] main build step"
+  block:
+    - name: "Create a new build (timeout {{ composer_build_timeout_seconds }} seconds)"
+      vars:
+        _timestamp: "{{ lookup('pipe', 'date +%s') }}"
+      ansible.builtin.command:
+        cmd: "composer-cli compose start --timeout {{ composer_build_timeout_seconds }} {{ composer_build_name }} gce {{ _build_name }} {{ composer_osbuild_workdir }}/profile.toml"
+      changed_when: result_create_build.rc == 0
+      failed_when: result_create_build.rc == 1
+      register: result_create_build
+
+    - name: Debug build
+      ansible.builtin.debug:
+        msg: "{{ result_create_build.stdout_lines }}"
+
+    # Loop: Wait for build to finish
+    - name: "block: Wait for build to finish"
+      block:
+        - name: Set _compose_build_id
+          ansible.builtin.set_fact:
+            _compose_build_id: "{{ result_create_build.stdout_lines[0].split(' ')[1] }}"
+            
+        - name: "Check if build is finished : {{ _compose_build_id }} (timeout {{ composer_build_timeout_seconds }} seconds)"
+          vars:
+            time_seconds: "{{ composer_build_timeout_seconds }}"
+          ansible.builtin.script:
+            cmd: "{{ role_path }}/files/wait_until_build_is_finished.py {{ _compose_build_id }} {{ time_seconds }}"
+            executable: python3
