@@ -23,9 +23,14 @@
   ansible.builtin.set_fact:
     gcp_credentials_json_base64: "{{ lookup('file', gcp_credentials_json_file_path) | b64encode }}"
 
-
 - name: Create profile.toml
   ansible.builtin.template:
     src: profile_gcp.j2
     dest: "{{ composer_osbuild_workdir }}/profile.toml"
     mode: '0644'
+
+- name: Append GCP packages to _packages_list
+  vars:
+    _gcp_packages_list: []
+  ansible.builtin.set_fact:
+    _packages_list: "{{ _packages_list + _gcp_packages_list }}"

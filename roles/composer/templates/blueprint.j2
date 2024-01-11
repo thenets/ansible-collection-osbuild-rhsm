@@ -5,11 +5,10 @@ modules = []
 groups = []
 distro = ""
 
+{% for package in _packages_list %}
 [[packages]]
-name = "ansible-automation-platform-installer"
-
-[[packages]]
-name = "WALinuxAgent"
+name = "{{ package }}"
+{% endfor %}
 
 [customizations]
 [customizations.kernel]

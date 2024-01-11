@@ -22,16 +22,29 @@
   when: composer_platform not in _supported_platforms
 
 
+# Main variables
+# --------------------
+- name: Set '_build_name' variable
+  vars:
+    _timestamp: "{{ lookup('pipe', 'date +%s') }}"
+  set_fact:
+    _build_name: "{{ composer_build_name }}-{{ _timestamp }}"
+
+- name: Set '_packages_list' variable
+  set_fact:
+    _packages_list: "{{ composer_packages | default([]) }}"
+
+#{{ composer_build_name }}-{{ _timestamp }}
 
 # Subscription Manager
 # --------------------
 # All RHSM repos required by the "composer-cli" blueprint must be enabled
 # on the host machine.
-- name: Enable Ansible Automation Repository repository
-  community.general.rhsm_repository:
-    name:
-      - "{{ item }}"
-  loop: "{{ composer_rhsm_repos }}"
+# - name: Enable Ansible Automation Repository repository
+#   community.general.rhsm_repository:
+#     name:
+#       - "{{ item }}"
+#   loop: "{{ composer_rhsm_repos }}"
 
 
 # Setup osbuild config files and repos
