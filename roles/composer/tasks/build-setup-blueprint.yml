@@ -10,12 +10,12 @@
     _public_key: "{{ lookup('file', composer_local_public_key_file) }}"
   ansible.builtin.template:
     src: blueprint.j2
-    dest: "{{ composer_osbuild_workdir }}/blueprint-{{ composer_build_name }}.toml"
+    dest: "{{ composer_osbuild_workdir }}/blueprint.toml"
     mode: '0644'
 
 - name: Push blueprint file to osbuild
   ansible.builtin.command:
-    cmd: "composer-cli blueprints push {{ composer_osbuild_workdir }}/blueprint-{{ composer_build_name }}.toml"
+    cmd: "composer-cli blueprints push {{ composer_osbuild_workdir }}/blueprint.toml"
   changed_when: result_push_blueprint.rc == 0
   failed_when: result_push_blueprint.rc == 1
   register: result_push_blueprint

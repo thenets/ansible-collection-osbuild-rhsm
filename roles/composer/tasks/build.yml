@@ -1,20 +1,9 @@
 ---
-# ORIGINAL content from the Azure's build
-#
-# - name: Create a new build
-#   vars:
-#     _timestamp: "{{ lookup('pipe', 'date +%s') }}"
-#   ansible.builtin.command:
-#     cmd: "composer-cli compose start {{ composer_build_name }} vhd {{ composer_build_name }}-{{ _timestamp }} {{ composer_osbuild_workdir }}/config_azure.toml"
-#   changed_when: result_create_build.rc == 0
-#   failed_when: result_create_build.rc == 1
-#   register: result_create_build
-
 - name: Create a new build
   vars:
     _timestamp: "{{ lookup('pipe', 'date +%s') }}"
   ansible.builtin.command:
-    cmd: "composer-cli compose start {{ composer_build_name }} gce {{ composer_build_name }}-{{ _timestamp }} {{ composer_osbuild_workdir }}/config_gcp.toml"
+    cmd: "composer-cli compose start {{ composer_build_name }} gce {{ _build_name }} {{ composer_osbuild_workdir }}/profile.toml"
   changed_when: result_create_build.rc == 0
   failed_when: result_create_build.rc == 1
   register: result_create_build
@@ -34,3 +23,41 @@
       ansible.builtin.script:
         cmd: "{{ role_path }}/files/wait_until_build_is_finished.py {{ _compose_build_id }} {{ time_seconds }}"
         executable: python3
+
+# ------------
+- name: "[block] Create the debug bundle"
+  vars:
+    _debug_bundle_dir_remote: "{{ composer_osbuild_workdir }}/debug-bundle"
+    _debug_bundle_dir_local: "{{ composer_local_output_dir }}/{{ _build_name }}"
+  block:
+    - name: "Create the debug bundle directory"
+      ansible.builtin.file:
+        path: "{{ _debug_bundle_dir_remote }}"
+        state: directory
+        mode: '0755'
+
+    - name: "Extract 'composer-cli' metadata file"
+      ansible.builtin.shell:
+        chdir: "{{ _debug_bundle_dir_remote }}"
+        cmd: |
+          composer-cli compose metadata {{ _compose_build_id }}
+
+    - name: "Copy the blueprint to the debug bundle"
+      ansible.builtin.shell:
+        chdir: "{{ _debug_bundle_dir_remote }}"
+        cmd: |
+          cp {{ composer_osbuild_workdir }}/blueprint.toml ./blueprint.toml
+
+    - name: "Create local destionation directory"
+      connection: local
+      ansible.builtin.file:
+        path: "{{ _debug_bundle_dir_local }}"
+        state: directory
+        mode: '0755'
+
+    - name: "Download the build bundle to the local machine"
+      ansible.builtin.synchronize:
+        mode: pull
+        src: "{{ _debug_bundle_dir_remote }}"
+        path: "{{ _debug_bundle_dir_local }}"
+        delete: false

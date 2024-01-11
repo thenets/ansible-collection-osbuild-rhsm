@@ -21,6 +21,10 @@
     msg: "Unsupported platform: '{{ composer_platform }}'. Supported platforms: {{ _supported_platforms }}"
   when: composer_platform not in _supported_platforms
 
+- name: Set 'composer_local_output_dir' variable default value
+  set_fact:
+    composer_local_output_dir: "{{ playbook_dir }}/output"
+  when: composer_local_output_dir is not defined or composer_local_output_dir == ''
 
 # Main variables
 # --------------------
@@ -33,8 +37,6 @@
 - name: Set '_packages_list' variable
   set_fact:
     _packages_list: "{{ composer_packages | default([]) }}"
-
-#{{ composer_build_name }}-{{ _timestamp }}
 
 # Subscription Manager
 # --------------------
@@ -129,6 +131,6 @@
 - name: Create the osbuild blueprint
   when: composer_run_step_create_blueprint
   ansible.builtin.import_tasks: build-setup-blueprint.yml
-- fail:
+
 - name: Run the composer (build the image)
   ansible.builtin.import_tasks: build.yml
