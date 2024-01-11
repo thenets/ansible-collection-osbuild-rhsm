@@ -11,7 +11,7 @@
         _local_workdir: /tmp/osbuild
         _build_name: "aap-installer-1704995744"
         _build_uuid: "8eaf4018-6712-4fea-a594-3b79e05ecbdd"
-        _build_arch: "x86_64"
+
 
         # gcp_credentials_json_file_path
         #gcp_bucket: aapinstaller-vm-images
@@ -50,7 +50,6 @@
                     gcloud auth activate-service-account \
                       --key-file={{ _workdir }}/service_account_file.json
 
-
               # - name: Upload to the bucket
               #   ansible.builtin.shell:
               #     cmd: |
@@ -58,7 +57,20 @@
               #         {{ _workdir }}/{{ _build_name }}.tar.gz \
               #         gs://{{ gcp_bucket }}/{{ _build_name }}.tar.gz
 
-              - name: Build the image
+              # - name: Build the image "x86_64"
+              #   vars:
+              #     _build_arch: "x86_64"
+              #   ansible.builtin.shell:
+              #     cmd: |
+              #       gcloud compute images create {{ _build_name }}-{{ _build_arch | lower | replace("_", "-") }} \
+              #         --source-uri=gs://{{ gcp_bucket }}/{{ _build_name }}.tar.gz \
+              #         --guest-os-features="UEFI_COMPATIBLE,GVNIC,VIRTIO_SCSI_MULTIQUEUE,SEV_CAPABLE,SEV_SNP_CAPABLE" \
+              #         --architecture {{ _build_arch | upper }} \
+              #         --family rhel-9
+
+              - name: Build the image "arm64"
+                vars:
+                  _build_arch: "arm64"
                 ansible.builtin.shell:
                   cmd: |
                     gcloud compute images create {{ _build_name }}-{{ _build_arch | lower | replace("_", "-") }} \
