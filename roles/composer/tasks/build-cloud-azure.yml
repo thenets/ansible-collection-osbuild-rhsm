@@ -1,0 +1,12 @@
+---
+- name: Create config_azure.toml file
+  ansible.builtin.template:
+    src: config_azure.j2
+    dest: "{{ composer_osbuild_workdir }}/config_azure.toml"
+    mode: '0644'
+
+- name: Append Azure packages to _packages_list
+  vars:
+    _azure_packages_list: ['WALinuxAgent']
+  ansible.builtin.set_fact:
+    _packages_list: "{{ _packages_list + _azure_packages_list }}"

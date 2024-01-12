@@ -1,0 +1,143 @@
+---
+
+- name: Assert variables are defined
+  ansible.builtin.assert:
+    that:
+      - gcp_bucket is defined
+      - gcp_region is defined
+      - gcp_object is defined
+      - gcp_credentials_json_file_path is defined
+
+# ------------
+- name: "[block] setup"
+  block:
+    - name: Check if file exists
+      connection: local
+      ansible.builtin.stat:
+        path: "{{ gcp_credentials_json_file_path }}"
+      register: gcp_credentials_json_file_path_stat
+
+    - name: Fail if GCP credentials file does not exist
+      ansible.builtin.fail:
+        msg: "File '{{ gcp_credentials_json_file_path }}' does not exist"
+      when: gcp_credentials_json_file_path_stat.stat.exists == false
+
+    - name: Encode credentials file
+      ansible.builtin.set_fact:
+        gcp_credentials_json_base64: "{{ lookup('file', gcp_credentials_json_file_path) | b64encode }}"
+
+    - name: Create profile.toml
+      ansible.builtin.template:
+        src: profile_gcp.j2
+        dest: "{{ composer_osbuild_workdir }}/profile.toml"
+        mode: '0644'
+
+    - name: Append GCP packages to _packages_list
+      vars:
+        _gcp_packages_list: []
+      ansible.builtin.set_fact:
+        _packages_list: "{{ _packages_list + _gcp_packages_list }}"
+
+    - name: Create the osbuild blueprint
+      when: composer_run_step_create_blueprint
+      ansible.builtin.import_tasks: build-setup-blueprint.yml
+
+# ------------
+- name: "[block] main build step"
+  block:
+    - name: "Create a new build (timeout {{ composer_build_timeout_seconds }} seconds)"
+      vars:
+        _timestamp: "{{ lookup('pipe', 'date +%s') }}"
+      ansible.builtin.command:
+        cmd: "composer-cli compose start --timeout {{ composer_build_timeout_seconds }} {{ composer_build_name }} gce"
+      changed_when: result_create_build.rc == 0
+      failed_when: result_create_build.rc == 1
+      register: result_create_build
+
+    - name: Debug build
+      ansible.builtin.debug:
+        msg: "{{ result_create_build.stdout_lines }}"
+
+    # Loop: Wait for build to finish
+    - name: "block: Wait for build to finish"
+      block:
+        - name: Set _compose_build_uuid
+          ansible.builtin.set_fact:
+            _compose_build_uuid: "{{ result_create_build.stdout_lines[0].split(' ')[1] }}"
+
+        # DEBUG
+        - debug:
+            msg:
+              - "_compose_build_uuid: {{ _compose_build_uuid }}"
+
+        - name: "Check if build is finished : {{ _compose_build_uuid }} (timeout {{ composer_build_timeout_seconds }} seconds)"
+          vars:
+            time_seconds: "{{ composer_build_timeout_seconds }}"
+          ansible.builtin.script:
+            cmd: "{{ role_path }}/files/wait_until_build_is_finished.py {{ _compose_build_uuid }} {{ time_seconds }}"
+            executable: python3
+
+    - name: "block: Build the GCE image on GCP"
+      block:
+          - name: Check if gcloud CLI is installed (available on the PATH)
+            ansible.builtin.command:
+              cmd: gcloud --version
+            register: _gcloud_cli_installed
+            failed_when: _gcloud_cli_installed.rc != 0
+
+          - name: Extract the build image
+            ansible.builtin.shell:
+              chdir: "{{ composer_osbuild_workdir }}"
+              cmd: |
+                composer-cli compose image {{ _compose_build_uuid }} --filename {{ composer_osbuild_workdir }}/{{ composer_build_name }}.tar.gz
+
+          - name: "block: gcloud credentials"
+            block:
+              - name: Copy the service_account_file
+                ansible.builtin.copy:
+                  src: "{{ gcp_credentials_json_file_path }}"
+                  dest: "{{ composer_osbuild_workdir }}/service_account_file.json"
+                  mode: 0600
+
+              # ------------
+
+              - name: Get GCP project name from the service account JSON
+                ansible.builtin.set_fact:
+                  gcp_project: "{{ (lookup('file', gcp_credentials_json_file_path) | from_json).project_id }}"
+
+              - name: gcloud auth block
+                environment:
+                  GOOGLE_APPLICATION_CREDENTIALS: "{{ gcp_credentials_json_file_path }}"
+                  CLOUDSDK_CORE_PROJECT: "{{ gcp_project }}"
+                block:
+
+                  - name: Activate the service account
+                    ansible.builtin.shell:
+                      cmd: |
+                        gcloud auth activate-service-account \
+                          --key-file={{ composer_osbuild_workdir }}/service_account_file.json
+
+                  - name: Upload to the bucket
+                    ansible.builtin.shell:
+                      cmd: |
+                        gcloud storage cp \
+                          {{ composer_osbuild_workdir }}/{{ composer_build_name }}.tar.gz \
+                          gs://{{ gcp_bucket }}/{{ composer_build_name }}.tar.gz
+
+                  - name: Build the image "x86_64"
+                    vars:
+                      _build_arch: "x86_64"
+                    ansible.builtin.shell:
+                      cmd: |
+                        gcloud compute images create {{ composer_build_name }}-{{ _build_arch | lower | replace("_", "-") }} \
+                          --source-uri=gs://{{ gcp_bucket }}/{{ composer_build_name }}.tar.gz \
+                          --guest-os-features="UEFI_COMPATIBLE,GVNIC,VIRTIO_SCSI_MULTIQUEUE,SEV_CAPABLE,SEV_SNP_CAPABLE" \
+                          --architecture {{ _build_arch | upper }} \
+                          --family rhel-9
+
+            always:
+              # always destroy the service account file
+              - name: Remove the service account file
+                ansible.builtin.file:
+                  path: "{{ composer_osbuild_workdir }}/service_account_file.json"
+                  state: absent

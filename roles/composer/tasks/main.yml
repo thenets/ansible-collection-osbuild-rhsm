@@ -2,6 +2,50 @@
 
 # Input validation
 # ----------------
+- name: Set 'composer_is_production' as boolean
+  set_fact:
+    _is_production: "{{ composer_is_production | default(false) | bool }}"
+
+- name: Assert variables were defined
+  ansible.builtin.assert:
+    that:
+      - composer_platform is defined
+
+- name: Check 'composer_platform' is supported
+  connection: local
+  vars:
+    _supported_platforms:
+      - gcp
+      - azure
+  ansible.builtin.fail:
+    msg: "Unsupported platform: '{{ composer_platform }}'. Supported platforms: {{ _supported_platforms }}"
+  when: composer_platform not in _supported_platforms
+
+- name: "block: if composer_local_output_dir is defined"
+  when: (composer_local_output_dir) != None
+  block:
+    - name: Check if 'composer_local_output_dir' is absolute path
+      connection: local
+      ansible.builtin.fail:
+        msg: "Variable 'composer_local_output_dir' must be an absolute path"
+      when:
+        - not (composer_local_output_dir | regex_search('^/'))
+
+    - name: Debug 'composer_local_output_dir'
+      ansible.builtin.debug:
+        msg: "{{ composer_local_output_dir }}"
+
+# Main variables
+# --------------------
+- name: Set '_build_name' variable
+  vars:
+    _timestamp: "{{ lookup('pipe', 'date +%s') }}"
+  set_fact:
+    _build_name: "{{ composer_build_name }}-{{ _timestamp }}"
+
+- name: Set '_packages_list' variable
+  set_fact:
+    _packages_list: "{{ composer_packages | default([]) }}"
 
 # Subscription Manager
 # --------------------
@@ -85,12 +129,13 @@
 
 # Blueprint and image creation
 # ----------------------------
-- name: Create the osbuild blueprint
-  when: composer_run_step_create_blueprint
-  ansible.builtin.import_tasks: build-setup-blueprint.yml
+- name: Setup Azure
+  when: composer_platform == 'azure'
+  ansible.builtin.import_tasks: build-cloud-azure.yml
 
-- name: Setup Azure's credentials
-  ansible.builtin.import_tasks: build-setup-azure-config.yml
+- name: Setup GCP
+  when: composer_platform == 'gcp'
+  ansible.builtin.import_tasks: build-cloud-gcp.yml
 
-- name: Run the composer (build the image)
-  ansible.builtin.import_tasks: build.yml
+- name: Run post build steps
+  ansible.builtin.import_tasks: build-post.yml

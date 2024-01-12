@@ -1,0 +1,69 @@
+---
+
+- name: "Assert that the '_compose_build_uuid' variable is defined"
+  assert:
+    that:
+      - _compose_build_uuid is defined
+    fail_msg: "The '_compose_build_uuid' variable is not defined. Please make sure you defined it during the main build process."
+
+# ------------
+- name: "[block] Create the debug bundle"
+  vars:
+    _debug_bundle_dir_remote: "{{ composer_osbuild_workdir }}/{{ _build_name }}"
+    _debug_bundle_dir_local: "{{ composer_local_output_dir }}/{{ _build_name }}"
+  block:
+    - name: "Create the debug bundle directory"
+      ansible.builtin.file:
+        path: "{{ _debug_bundle_dir_remote }}"
+        state: directory
+        mode: '0755'
+
+    - name: "Extract 'composer-cli' metadata file"
+      ansible.builtin.shell:
+        chdir: "{{ _debug_bundle_dir_remote }}"
+        cmd: |
+          composer-cli compose metadata {{ _compose_build_uuid }}
+          tar xvf {{ _compose_build_uuid }}-metadata.tar
+
+    - name: "Copy the blueprint to the debug bundle"
+      ansible.builtin.shell:
+        chdir: "{{ _debug_bundle_dir_remote }}"
+        cmd: |
+          composer-cli blueprints save {{ composer_build_name }} --filename ./blueprint.toml
+
+    - name: "Create local destionation directory"
+      connection: local
+      become: false
+      ansible.builtin.file:
+        path: "{{ _debug_bundle_dir_local }}"
+        state: directory
+        mode: '0755'
+
+    - name: "Debug paths"
+      vars:
+        _paths:
+          _debug_bundle_dir_remote: "{{ _debug_bundle_dir_remote }}"
+          _debug_bundle_dir_local: "{{ _debug_bundle_dir_local }}"
+      ansible.builtin.debug:
+        msg: "{{ _paths }}"
+
+    - name: "Create the destionation directory"
+      connection: local
+      become: false
+      ansible.builtin.file:
+        path: "{{ _debug_bundle_dir_local }}"
+        state: directory
+        mode: '0755'
+
+    - name: "Download the build bundle to the local machine"
+      vars:
+        _files:
+          - "{{ _debug_bundle_dir_remote }}/blueprint.toml"
+          - "{{ _debug_bundle_dir_remote }}/{{ _compose_build_uuid }}.json"
+      loop: "{{ _files }}"
+      ansible.builtin.fetch:
+        src: "{{ item }}"
+        dest: "{{ _debug_bundle_dir_local }}/{{ item | basename }}"
+        flat: true
+        fail_on_missing: true
+        validate_checksum: true

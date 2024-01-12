@@ -1,6 +1,0 @@
----
-- name: Create azure.toml file
-  ansible.builtin.template:
-    src: azure.j2
-    dest: "{{ composer_osbuild_workdir }}/azure.toml"
-    mode: '0644'
