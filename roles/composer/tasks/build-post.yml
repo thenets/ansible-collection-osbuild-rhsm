@@ -1,10 +1,10 @@
 ---
 
-- name: "Assert that the '_compose_build_id' variable is defined"
+- name: "Assert that the '_compose_build_uuid' variable is defined"
   assert:
     that:
-      - _compose_build_id is defined
-    fail_msg: "The '_compose_build_id' variable is not defined. Please make sure you defined it during the main build process."
+      - _compose_build_uuid is defined
+    fail_msg: "The '_compose_build_uuid' variable is not defined. Please make sure you defined it during the main build process."
 
 # ------------
 - name: "[block] Create the debug bundle"
@@ -22,8 +22,8 @@
       ansible.builtin.shell:
         chdir: "{{ _debug_bundle_dir_remote }}"
         cmd: |
-          composer-cli compose metadata {{ _compose_build_id }}
-          tar xvf {{ _compose_build_id }}-metadata.tar
+          composer-cli compose metadata {{ _compose_build_uuid }}
+          tar xvf {{ _compose_build_uuid }}-metadata.tar
 
     - name: "Copy the blueprint to the debug bundle"
       ansible.builtin.shell:
@@ -59,7 +59,7 @@
       vars:
         _files:
           - "{{ _debug_bundle_dir_remote }}/blueprint.toml"
-          - "{{ _debug_bundle_dir_remote }}/{{ _compose_build_id }}.json"
+          - "{{ _debug_bundle_dir_remote }}/{{ _compose_build_uuid }}.json"
       loop: "{{ _files }}"
       ansible.builtin.fetch:
         src: "{{ item }}"

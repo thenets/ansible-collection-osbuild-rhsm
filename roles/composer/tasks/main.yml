@@ -51,11 +51,11 @@
 # --------------------
 # All RHSM repos required by the "composer-cli" blueprint must be enabled
 # on the host machine.
-# - name: Enable Ansible Automation Repository repository
-#   community.general.rhsm_repository:
-#     name:
-#       - "{{ item }}"
-#   loop: "{{ composer_rhsm_repos }}"
+- name: Enable Ansible Automation Repository repository
+  community.general.rhsm_repository:
+    name:
+      - "{{ item }}"
+  loop: "{{ composer_rhsm_repos }}"
 
 
 # Setup osbuild config files and repos
