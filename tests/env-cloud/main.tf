@@ -280,5 +280,4 @@ EOT
 resource "local_file" "inventory" {
   content  = data.template_file.inventory.rendered
   filename = "${path.module}/inventory"
-
 }

@@ -1,0 +1,49 @@
+---
+
+- hosts: all
+  become: true
+
+  tasks:
+    - name: "block: Install gcloud"
+      block:
+        - name: "Add google-cloud-cli repo"
+          ansible.builtin.copy:
+            dest: /etc/yum.repos.d/google-cloud-cli.repo
+            content: |
+              [google-cloud-cli]
+              name=Google Cloud CLI
+              baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el9-aarch64
+              enabled=1
+              gpgcheck=1
+              repo_gpgcheck=0
+              gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+        - name: "Install gcloud"
+          ansible.builtin.package:
+            name:
+              - google-cloud-cli
+            state: present
+
+
+    - name: "block: RHSM"
+      when: false # DEBUG
+      block:
+        - name: "Install Red Hat Subscription Manager"
+          ansible.builtin.package:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - subscription-manager
+
+        - name: "Assert subscription vars are set"
+          ansible.builtin.assert:
+            that:
+              - subscription_username is defined
+              - subscription_password is defined
+
+        - name: "Attach Red Hat Subscription Manager"
+          ansible.builtin.redhat_subscription:
+            state: present
+            username: "{{ subscription_username }}"
+            password: "{{ subscription_password }}"
+            auto_attach: true
