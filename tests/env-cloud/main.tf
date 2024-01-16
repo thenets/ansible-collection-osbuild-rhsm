@@ -88,8 +88,18 @@ resource "google_compute_instance" "x86-0" {
   allow_stopping_for_update = true
   deletion_protection       = false
 
+  # prevent machine from being recreated
   lifecycle {
-    create_before_destroy = true
+    # create_before_destroy = true
+    ignore_changes = [
+      machine_type,
+      boot_disk,
+      scratch_disk,
+      network_interface,
+      metadata,
+      metadata_startup_script,
+      service_account,
+    ]
   }
 
   boot_disk {
@@ -137,14 +147,24 @@ resource "google_compute_instance" "arm64-0" {
   allow_stopping_for_update = true
   deletion_protection       = false
 
+  # prevent machine from being recreated
   lifecycle {
-    create_before_destroy = true
+    # create_before_destroy = true
+    ignore_changes = [
+      machine_type,
+      boot_disk,
+      scratch_disk,
+      network_interface,
+      metadata,
+      metadata_startup_script,
+      service_account,
+    ]
   }
 
   boot_disk {
     initialize_params {
       # RHEL9
-      image = "rhel-9"
+      image = "rhel-9-arm64"
       labels = {
         my_label = "value"
       }
@@ -152,9 +172,9 @@ resource "google_compute_instance" "arm64-0" {
   }
 
   // Local SSD disk
-  scratch_disk {
-    interface = "NVME"
-  }
+  # scratch_disk {
+  #   interface = "NVME"
+  # }
 
   network_interface {
     network    = google_compute_network.this.id
@@ -175,7 +195,6 @@ resource "google_compute_instance" "arm64-0" {
 
 
 # output.tf
-
 output "network" {
   # map [id, name]
   value = {
@@ -227,10 +246,39 @@ resource "null_resource" "instance-ssh-script" {
   }
 
   provisioner "local-exec" {
-    command = "chmod +x '${path.module}/instance-ssh.sh'"
+    command = <<-EOF
+    set -x
+    chmod +x '${path.module}/instance-ssh.sh'
+    gcloud compute config-ssh
+EOF
   }
 
   depends_on = [
     local_file.instance-ssh-script,
   ]
+}
+
+
+
+# === Ansible Inventory ===
+
+# Create local file ./inventory
+output "inventory" {
+  value = "${path.module}/inventory"
+}
+data "template_file" "inventory" {
+  # host pattern: <instance_name>.<instance_zone>.<project_id>
+  template = <<-EOT
+[all]
+${google_compute_instance.x86-0.name}.${google_compute_instance.x86-0.zone}.${var.project_id}
+${google_compute_instance.arm64-0.name}.${google_compute_instance.arm64-0.zone}.${var.project_id}
+
+[all:vars]
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+EOT
+}
+resource "local_file" "inventory" {
+  content  = data.template_file.inventory.rendered
+  filename = "${path.module}/inventory"
+
 }
