@@ -103,10 +103,10 @@
 
 
 - name: "block: config osbuild source"
-  # TODO review the condition to properly remove all repo sources
-  when: _rhsm_repo is defined
   block:
     - name: "Remove osbuild source (ignore errors)"
+      # TODO review the condition to properly remove all repo sources
+      when: _rhsm_repo is defined
       ansible.builtin.command:
         cmd: "composer-cli sources remove {{ _rhsm_repo }}"
       register: result_remove_source
