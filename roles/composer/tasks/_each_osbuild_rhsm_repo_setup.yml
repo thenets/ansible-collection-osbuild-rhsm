@@ -60,7 +60,7 @@
         content: |
           {% set gpgkeys = ([''] + (repo_data.gpgkey | split('-----BEGIN'))[1:3]) | join(',-----BEGIN') | trim | split(',') %}
           {
-            "x86_64": [
+            "{{ ansible_architecture }}": [
                 {
                     "name": "{{ _rhsm_repo }}",
                     "metalink": "{{ repo_data.baseurl }}",

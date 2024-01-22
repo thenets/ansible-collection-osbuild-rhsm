@@ -4,17 +4,17 @@
 # Install dependencies
 # --------------------
 - name: "[include task] ./tasks/install_deps_container.yml"
-  when: host_setup_run_step_install_packages_container
+  when: (host_setup_run_step_install_packages_container | bool)
   include_tasks: ./tasks/install_deps_container.yml
   tags:
     - install_dependencies
 - name: "[include task] ./tasks/install_deps_hypervisor.yml"
-  when: host_setup_run_step_install_packages_hypervisor
+  when: (host_setup_run_step_install_packages_hypervisor | bool)
   tags:
     - install_dependencies
   include_tasks: ./tasks/install_deps_hypervisor.yml
 - name: "[include task] ./tasks/install_deps_osbuild.yml"
-  when: host_setup_run_step_install_packages_osbuild
+  when: (host_setup_run_step_install_packages_osbuild | bool)
   include_tasks: ./tasks/install_deps_osbuild.yml
   tags:
     - install_dependencies

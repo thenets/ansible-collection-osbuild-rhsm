@@ -24,6 +24,28 @@ local-play-build-debug:
 	ansible-playbook -vv thenets.osbuild.debug
 
 
+# Cloud test targets
+# ===================================
+## cloud test: run all tests
+cloud-play-all: play-host-setup
+
+## cloud test: thenets.osbuild.host_setup
+cloud-play-host-setup: export ANSIBLE_CONFIG=./env-cloud/ansible.cfg
+cloud-play-host-setup:
+	ansible-playbook \
+		-e @./env-cloud/secrets/vars.yml \
+		-vv ./env-cloud/playbook-setup-basic.yml
+	# ansible-playbook \
+	# 	-e host_setup_run_step_install_packages_hypervisor=false \
+	# 	-vv thenets.osbuild.host_setup
+
+## cloud test: thenets.osbuild.build_gcp
+cloud-play-build-gcp-arm64: export ANSIBLE_CONFIG=./env-cloud/ansible.cfg
+cloud-play-build-gcp-arm64:
+	ansible-playbook \
+		-e @./env-cloud/secrets/vars.yml \
+		-vv thenets.osbuild.build_gcp
+
 # In-container tests
 # ===================================
 CONTAINER_SECRETS_DIR=/tmp/osbuild-container-secrets/
