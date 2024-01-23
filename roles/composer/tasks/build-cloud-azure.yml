@@ -1,8 +1,8 @@
 ---
-- name: Create config_azure.toml file
+- name: Create profile_azure.toml file
   ansible.builtin.template:
-    src: config_azure.j2
-    dest: "{{ composer_osbuild_workdir }}/config_azure.toml"
+    src: profile_azure.j2
+    dest: "{{ composer_osbuild_workdir }}/profile_azure.toml"
     mode: '0644'
 
 - name: Append Azure packages to _packages_list
