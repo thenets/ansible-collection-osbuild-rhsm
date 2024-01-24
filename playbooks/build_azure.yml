@@ -1,7 +1,7 @@
 ---
 - name: Build Azure VM image
   hosts: all
-  gather_facts: false
+  gather_facts: true
   become: true
   tasks:
     - name: Assert Azure variables are set
